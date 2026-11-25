@@ -1,0 +1,20 @@
+{
+    "scripts": {
+        "dev": "node node_modules/vite/bin/vite.js --host 127.0.0.1",
+        "build": "node node_modules/typescript/bin/tsc && node node_modules/vite/bin/vite.js build",
+        "test:review-mapper": "node node_modules/typescript/bin/tsc --ignoreConfig --target ES2020 --module commonjs --lib DOM,ES2020 --skipLibCheck --outDir .test-build src/review/rawSource.ts src/review/numericDraft.ts src/review/amountDraft.ts src/review/constraintDraft.ts tests/reviewRawSource.test.ts tests/reviewRawSource.browser.test.ts tests/reviewNumericDraft.test.ts tests/reviewAmountDraft.test.ts tests/reviewEvidence.test.ts tests/reviewConstraintDraft.test.ts tests/reviewDescriptionNavigation.test.ts tests/reviewDescriptionEvidence.test.ts tests/reviewDescriptionReview.test.ts && node .test-build/tests/reviewRawSource.test.js && node .test-build/tests/reviewRawSource.browser.test.js && node .test-build/tests/reviewNumericDraft.test.js && node .test-build/tests/reviewAmountDraft.test.js && node .test-build/tests/reviewEvidence.test.js && node .test-build/tests/reviewConstraintDraft.test.js && node .test-build/tests/reviewDescriptionNavigation.test.js && node .test-build/tests/reviewDescriptionEvidence.test.js && node .test-build/tests/reviewDescriptionReview.test.js",
+        "preview": "node node_modules/vite/bin/vite.js preview --host 127.0.0.1"
+    },
+    "dependencies": {
+        "@vitejs/plugin-react": "latest",
+        "lucide-react": "latest",
+        "react": "latest",
+        "react-dom": "latest",
+        "typescript": "latest",
+        "vite": "latest"
+    },
+    "devDependencies": {
+        "@types/react": "^19.2.14",
+        "@types/react-dom": "^19.2.3"
+    }
+}

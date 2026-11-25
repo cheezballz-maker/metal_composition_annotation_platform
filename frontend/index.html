@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Composition Review</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+    <script>
+      // Only report coarse homepage usage from a deployed Build Hub domain.
+      if (location.hostname.endsWith(".build.patsnap.info") && location.pathname === "/") {
+        try {
+          fetch("https://build.patsnap.info/api/v1/analytics/homepage", {
+            method: "POST",
+            headers: { "Content-Type": "text/plain;charset=UTF-8" },
+            credentials: "omit",
+            body: JSON.stringify({ host: location.hostname, path: "/", title: document.title }),
+            keepalive: true,
+          }).catch(function () {});
+        } catch (_) {}
+      }
+    </script>
+  </body>
+</html>
