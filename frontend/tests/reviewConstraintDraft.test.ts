@@ -1,4 +1,6 @@
 import {
+  descriptionRestrictionSelectionPatch,
+  restrictionSelectionLabel,
   hasCompositionDraftErrors,
   nextConstraintId,
   renameConstraintMemberRefs,
@@ -64,5 +66,20 @@ const duplicateIdErrors = validateCompositionDraft({ ...claimEight, constraints:
 expect(Boolean(duplicateIdErrors.constraints[0]?.constraint_id && duplicateIdErrors.constraints[1]?.constraint_id), "duplicate constraint IDs are rejected");
 const duplicateMemberErrors = validateCompositionDraft({ ...claimEight, constraints: [constraint({ member_refs: ["cerium", "cerium"] })] });
 expect(Boolean(duplicateMemberErrors.constraints[0]?.member_refs), "duplicate constraint members are rejected");
+
+const concentrationOnly = constraint({mode:"sum",member_refs:["Cu","Ni"],selection:{min:null,max:null},amount_upper_value:5,amount_lower_value:null});
+const counted = {...concentrationOnly,...descriptionRestrictionSelectionPatch(concentrationOnly,"max","1")};
+expect(counted.mode === "any_of" && counted.selection?.max === "1", "adding a count sets the compatible schema mode");
+expect(counted.amount_upper_value === 5 && counted.member_refs === concentrationOnly.member_refs, "count edits preserve combined amount and membership");
+expect(concentrationOnly.mode === "sum" && concentrationOnly.selection?.max === null, "count edits never mutate stored rules");
+const cleared = {...counted,...descriptionRestrictionSelectionPatch(counted,"max","")};
+expect(cleared.mode === "sum" && cleared.selection?.max === null, "clearing the last count restores a concentration-only rule");
+const zero = {...concentrationOnly,...descriptionRestrictionSelectionPatch(concentrationOnly,"max","0")};
+expect(zero.mode === "any_of" && restrictionSelectionLabel(zero) === "Up to 0", "zero is a meaningful selection limit");
+expect(restrictionSelectionLabel(concentrationOnly) === null, "no count is invented when the source gives none");
+expect(restrictionSelectionLabel(constraint({selection:{min:1,max:2}})) === "1–2", "both bounds are shown");
+expect(restrictionSelectionLabel(constraint({selection:{min:2,max:2}})) === "2", "exact count is shown once");
+expect(restrictionSelectionLabel(constraint({selection:{min:1,max:null}})) === "At least 1", "minimum-only count is clear");
+expect(restrictionSelectionLabel(constraint({mode:"sum",selection:{min:1,max:2}})) === "1–2", "legacy counts remain visible irrespective of mode");
 
 console.log("review constraint draft tests passed");

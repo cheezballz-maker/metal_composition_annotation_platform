@@ -1,5 +1,6 @@
 import { useReviewTranslation } from "./locale";
 import React from "react";
+import { restrictionSelectionLabel } from "./constraintDraft";
 import { alphabeticalConstituents } from "./descriptionNavigation";
 import { ChevronRight, Plus } from "lucide-react";
 import type { RawEvidence, ReviewComposition, ReviewCompositionData, ReviewConstituent } from "./types";
@@ -91,9 +92,9 @@ export function CompositionDataView({ data, description = false, bases = [], onS
       <header><strong>Constituent restrictions</strong><small>{data.constraints?.length || 0}</small>{editable && <button type="button" onClick={() => onSectionAction?.("restriction",undefined,"edit")}><Plus size={13}/> Add restriction</button>}</header>
       {!data.constraints?.length && <p className="review-section-empty">No constituent restrictions.</p>}
       {(data.constraints || []).map((c, i) => <ReviewContextMenu className="review-description-restriction" key={i} label={`Constituent restriction ${i + 1} actions`} actions={editable ? [{id:"edit",label:"Edit"},{id:"delete",label:"Delete",danger:true}] : []} onAction={action => onSectionAction?.("restriction",i,action as "edit" | "delete")}>
-        <div className="review-restriction-summary"><strong>{c.mode === "sum" ? "Combined constituent concentration" : "Group constituent selection"}: {(c.member_refs || []).join(c.mode === "sum" ? " + " : ", ")}</strong></div>
-        {amount(c) !== "—" && <p>{amount(c)}</p>}
-        {c.mode === "any_of" && (c.selection?.min != null || c.selection?.max != null) && <p>Number selected: {c.selection?.min ?? "any"}–{c.selection?.max ?? "any"}</p>}
+        <div className="review-restriction-summary"><strong>Constituents: {(c.member_refs || []).join(", ")}</strong></div>
+        {amount(c) !== "—" && <p>Combined constituent concentration: {amount(c)}</p>}
+        {restrictionSelectionLabel(c) && <p>Number included: {restrictionSelectionLabel(c)}</p>}
       </ReviewContextMenu>)}
       <UnrepresentedRestrictions values={relations}/>
     </section> : !!data.constraints?.length && <JsonNode label={t("Constraints")} value={data.constraints} scope={scope.length ? scope : undefined}/>}

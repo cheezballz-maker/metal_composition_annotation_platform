@@ -1,4 +1,5 @@
 import React from "react";
+import { restrictionSelectionLabel } from "./constraintDraft";
 import { alphabeticalConstituents } from "./descriptionNavigation";
 import { UnrepresentedRestrictions, formatCompositionAmount } from "./CompositionDataView";
 import { preferredRangeLabel } from "./descriptionDraft";
@@ -34,7 +35,7 @@ export function InheritedInformation({ data, records }: { data: ReviewCompositio
       <span><strong>{row.constituent_name}</strong><small>{row.constituent_status || "included"}</small></span>
       <span>{row.amounts ? row.amounts.map((amount, i) => <span className="review-inherited-amount" key={i}><small>{preferredRangeLabel(amount)}</small> {formatCompositionAmount(amount)}</span>) : formatCompositionAmount(row)}</span>
     </div>)}</div>}
-    {(inherited.constraints.length > 0 || inherited.otherRules.length > 0) && <div className="review-inherited-restrictions" aria-label="Inherited constituent restrictions"><strong>Constituent restrictions</strong>{inherited.constraints.map(row => <p key={row.constraint_id}>{row.mode === "sum" ? "Combined constituent concentration: " : "Group constituent selection: "}{row.member_refs?.join(row.mode === "sum" ? " + " : ", ")}: {formatCompositionAmount(row)}{row.mode === "any_of" && (row.selection?.min != null || row.selection?.max != null) ? `; number selected: ${row.selection.min ?? "any"}–${row.selection.max ?? "any"}` : ""}</p>)}
+    {(inherited.constraints.length > 0 || inherited.otherRules.length > 0) && <div className="review-inherited-restrictions" aria-label="Inherited constituent restrictions"><strong>Constituent restrictions</strong>{inherited.constraints.map(row => <div className="review-inherited-restriction" key={row.constraint_id}><p>Constituents: {row.member_refs?.join(", ")}</p>{formatCompositionAmount(row) !== "—" && <p>Combined constituent concentration: {formatCompositionAmount(row)}</p>}{restrictionSelectionLabel(row) && <p>Number included: {restrictionSelectionLabel(row)}</p>}</div>)}
       {inherited.otherRules.length > 0 && <UnrepresentedRestrictions values={inherited.otherRules} inherited/>}
     </div>}
     {!inherited.constituents.length && !inherited.constraints.length && !inherited.otherRules.length && <p>No inherited constituents or restrictions.</p>}

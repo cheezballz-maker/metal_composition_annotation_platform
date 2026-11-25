@@ -501,14 +501,12 @@ button:disabled { opacity: .5; cursor: not-allowed; }
 .review-inherited-restrictions p { margin: 5px 0 0; }
 .review-description .review-restriction-summary { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
 .review-description .review-restriction-summary small { color: #64748b; font-weight: 400; }
-.review-description .review-restriction-basics,
 .review-description .review-restriction-selection { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .review-description .review-restriction-amount { display: grid; gap: 7px; padding: 9px 0; border-top: 1px solid #e2e8f0; }
 .review-description .review-restriction-amount > strong { font-size: 12px; color: #475569; }
 .review-description .review-restriction-amount > small { color: #64748b; font-size: 12px; }
 .review-description .review-restriction-amount .review-constraint-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
 .review-description .review-restriction-amount .review-boundary-rules { grid-column: 1 / -1; }
-.review-description .review-restriction-basics { grid-template-columns: minmax(0, 1fr); }
 .review-occurrence-content { position: relative; }
 .review-inheritance-arrows { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; z-index: 1; }
 .review-description .review-occurrence-row { align-items: center; padding: 12px 34px 12px calc(var(--review-inheritance-gutter, 24px) + 10px); }
@@ -527,3 +525,8 @@ button:disabled { opacity: .5; cursor: not-allowed; }
 .review-description .review-unrepresented-restrictions { margin-top: 10px; padding-top: 10px; border-top: 1px solid #e2e8f0; }
 .review-description .review-unrepresented-restrictions > header { margin-bottom: 6px; font-size: 13px; }
 .review-description .review-unrepresented-restriction { margin: 6px 0 0; font-size: 12px; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
+
+.review-description .review-restriction-counts { min-width:0; margin:12px 0 0; padding:0; border:0; }
+.review-description .review-restriction-counts legend { margin-bottom:6px; font-size:12px; font-weight:600; }
+.review-description .review-restriction-counts legend small { color:#64748b; font-weight:400; }
+.review-description .review-inherited-restriction + .review-inherited-restriction { margin-top:10px; }

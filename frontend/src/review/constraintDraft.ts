@@ -37,6 +37,23 @@ export function toggleConstraintMember(refs: string[], name: string, selected: b
   return refs.filter((ref) => ref !== name);
 }
 
+/** Select the legacy schema mode from explicit count edits, without rewriting untouched rules. */
+export function descriptionRestrictionSelectionPatch(row: ReviewConstraint, field: "min" | "max", value: string): Partial<ReviewConstraint> {
+  const selection = { ...row.selection, [field]: value.trim() ? value : null };
+  const hasLimit = [selection.min, selection.max].some(count => count != null && String(count).trim() !== "");
+  return { selection, mode: hasLimit ? "any_of" : "sum" };
+}
+
+export function restrictionSelectionLabel(row: ReviewConstraint): string | null {
+  const min = row.selection?.min, max = row.selection?.max;
+  const hasMin = min != null && String(min).trim() !== "";
+  const hasMax = max != null && String(max).trim() !== "";
+  if (hasMin && hasMax) return String(min) === String(max) ? String(min) : `${min}–${max}`;
+  if (hasMin) return `At least ${min}`;
+  if (hasMax) return `Up to ${max}`;
+  return null;
+}
+
 export function renameConstraintMemberRefs(rows: ReviewConstraint[], before: string, after: string): ReviewConstraint[] {
   if (!before || !after || before === after) return rows;
   return rows.map((row) => ({

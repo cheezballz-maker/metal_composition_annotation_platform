@@ -186,9 +186,9 @@ explicit `member_refs` (for example, Cu+Zn <= 25 wt% and Cu+Sn <= 12 wt%). A chi
 can add a separately identified restriction while preserving the inherited ones.
 The description UI calls this section **Constituent restrictions**, including
 inherited read-only rules. Its Add restriction button is available when empty and
-in full-composition editing. Description editors use **Combined constituent
-concentration** and **Group constituent selection**, show selection counts only
-for the latter, and keep internal IDs automatic. Restriction `evidence` is removed from descriptions in both the
+in full-composition editing. Description editors use one form with **Constituents**, **Combined constituent
+concentration** and optional **Number included** limits. There is no type selector;
+internal IDs remain automatic. Restriction `evidence` is removed from descriptions in both the
 platform and extraction profile. Current/baseline description rules omit the field;
 composition evidence remains intact. Historical action snapshots remain immutable,
 and undo strips the retired field before restoring an older annotation. Claims
@@ -200,8 +200,12 @@ Existing entries and their fields remain unchanged when other sections are saved
 The extraction skill supplies these entries; this UI change does not create or
 reclassify them. Legacy entries without a description display their source wording.
 
-Both restriction types use the same **Constituents** checkbox list. Group selection
-retains its minimum/maximum selection counts. The redundant group-level Inclusion
+The unified editor uses a **Constituents** checkbox list and optional combined
+concentration and minimum/maximum counts. Leave counts blank unless the source
+specifies them. Existing schema modes remain compatible: explicit count edits
+set `any_of` when a count is present and `sum` when both counts are cleared.
+Untouched legacy modes and counts are preserved. View and inherited summaries
+show the same fields without the old mode labels. The redundant group-level Inclusion
 control is hidden; existing stored values are preserved. **Balance** remains available
 for restrictions describing a shared remainder.
 
