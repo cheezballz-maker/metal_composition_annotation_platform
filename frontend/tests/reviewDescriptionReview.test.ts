@@ -85,13 +85,7 @@ const nestedSibling = {composition:{...childRecord,id:"nested-sibling",data:{...
 const nestedEntries = [...entries,nestedSibling];
 const nestedRoutes = inheritanceRoutes(nestedEntries,nestedEntries);
 expect(nestedRoutes.routes.find(r=>r.parent === "titanium")?.lane === 1, "Nested branching uses a separate gutter lane");
-import { otherRuleDrafts, prepareOtherRules } from "../src/review/descriptionDraft";
 
 const sourceRule={kind:"complex_expression",evidence_span:{start:0,end:5,evidence_text:"Cu/Fe"},legacy_note:"kept"};
-expect(JSON.stringify(prepareOtherRules(otherRuleDrafts([sourceRule])).rules[0])===JSON.stringify(sourceRule),"unchanged notes preserve original source-backed rules and legacy fields");
-const newNote=prepareOtherRules([{original:{kind:"source_note"},text:"Check whether this applies to all examples."}]).rules[0];
-expect(newNote.kind==="source_note" && newNote.description==="Check whether this applies to all examples." && !("evidence_span" in newNote),"new notes are free text without a separate source span or rule type entry");
-const editedNote=prepareOtherRules([{...otherRuleDrafts([sourceRule])[0],text:"A reviewer clarification."}]).rules[0];
-expect(editedNote.legacy_note==="kept" && editedNote.evidence_span===sourceRule.evidence_span && editedNote.description==="A reviewer clarification.","editing a note preserves prior metadata and evidence");
 const baseWithOtherRule={...rootRecord,data:{...rootRecord.data,unrepresented_relations:[sourceRule]}};
 expect(inheritedInformation(linked,[baseWithOtherRule]).otherRules[0]===sourceRule,"notes resolve read-only from the base without copying into the child");

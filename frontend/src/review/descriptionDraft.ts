@@ -1,26 +1,6 @@
 import type { InheritanceRelation, RawEvidence, ReviewAmount, ReviewComposition, ReviewCompositionData, ReviewConstituent } from "./types";
 import { normalizeAmountDraft } from "./amountDraft";
 
-export type OtherRuleDraft = { original: Record<string, unknown>; text: string };
-
-export function otherRuleDrafts(values: unknown[]): OtherRuleDraft[] {
-  return values.map(value => {
-    const original = value && typeof value === "object" ? value as Record<string,unknown> : {};
-    const span = (original.evidence_span || original) as Partial<RawEvidence>;
-    const wording=original.description ?? original.relation ?? original.reason;
-    return {original,text:typeof wording === "string" ? wording : span.evidence_text || ""};
-  });
-}
-
-/** Notes are free text. Keep existing rule metadata and evidence when editing. */
-export function prepareOtherRules(drafts: OtherRuleDraft[]) {
-  return {rules:drafts.map((draft,index)=>{
-    if (!draft.text.trim()) throw new Error(`Note ${index+1}: enter a note or delete it.`);
-    if (otherRuleDrafts([draft.original])[0].text===draft.text) return draft.original;
-    return {...draft.original,kind:draft.original.kind || "source_note",description:draft.text};
-  })};
-}
-
 const amountFields = ["amount_comparator", "amount_unit", "amount_value", "amount_lower_value", "amount_upper_value", "amount_lower_endpoint_type", "amount_upper_endpoint_type"] as const;
 
 export function preferredRangeLabel(amount: ReviewAmount): string {

@@ -2,7 +2,7 @@ import { useReviewTranslation } from "./locale";
 import React from "react";
 import { alphabeticalConstituents } from "./descriptionNavigation";
 import { ChevronRight, Plus } from "lucide-react";
-import type { InheritanceRelation, RawEvidence, ReviewComposition, ReviewCompositionData, ReviewConstituent } from "./types";
+import type { RawEvidence, ReviewComposition, ReviewCompositionData, ReviewConstituent } from "./types";
 import { EvidenceContext, SourceLink } from "./EvidenceFocus";
 import { resolveEvidence } from "./evidence";
 import { JsonNode } from "./JsonNode";
@@ -37,7 +37,21 @@ export function evidencePreview(text: string = "") {
   return tokenizeRawSource(text).map((token) => token.kind === "text" ? token.value.replace(/&(?:#x[0-9a-f]+|#\d+|[a-z]+);/gi, decodeEntity) : token.kind === "break" || (token.kind === "close" && ["p", "div", "section", "claim", "tr", "td", "li"].includes(token.tag)) ? " " : "").join("").replace(/\s+/g, " ").trim();
 }
 
-export function CompositionDataView({ data, description = false, bases = [], onSelectBase, onEditConstituent, onDeleteConstituent, onSectionAction, constituentEditor, editable = true }: { data: ReviewCompositionData; description?: boolean; bases?: ReviewComposition[]; onSelectBase?: (id: string) => void; onEditConstituent?: (index: number) => void; onDeleteConstituent?: (index: number) => void; onSectionAction?: (kind: "relationship" | "restriction", index: number | undefined, action: "edit" | "delete") => void; editable?: boolean; constituentEditor?: {index:number; row?:ReviewConstituent; content:React.ReactNode} }) {
+export function UnrepresentedRestrictions({values,inherited=false}:{values:unknown[];inherited?:boolean}) {
+  return <section className="review-unrepresented-restrictions" aria-label={inherited ? "Inherited unrepresented restrictions" : "Unrepresented restrictions"}>
+    <header><strong>Unrepresented restrictions</strong></header>
+    {!values.length && <p className="review-section-empty">None.</p>}
+    {values.map((value,index)=>{
+      const row=value && typeof value==="object" ? value as Record<string,unknown> : {};
+      const span=(row.evidence_span || row) as {evidence_text?:string};
+      const description=row.description ?? row.relation ?? row.reason;
+      const text=typeof description==="string" ? description : evidencePreview(span.evidence_text || "");
+      return <p className="review-unrepresented-restriction" key={index}><strong>{typeof row.kind==="string" ? row.kind : "unspecified"}:</strong> {text || "—"}</p>;
+    })}
+  </section>;
+}
+
+export function CompositionDataView({ data, description = false, bases = [], onSelectBase, onEditConstituent, onDeleteConstituent, onSectionAction, constituentEditor, editable = true }: { data: ReviewCompositionData; description?: boolean; bases?: ReviewComposition[]; onSelectBase?: (id: string) => void; onEditConstituent?: (index: number) => void; onDeleteConstituent?: (index: number) => void; onSectionAction?: (kind: "restriction", index: number | undefined, action: "edit" | "delete") => void; editable?: boolean; constituentEditor?: {index:number; row?:ReviewConstituent; content:React.ReactNode} }) {
   const t = useReviewTranslation();
   const { content } = React.useContext(EvidenceContext);
   const scope = React.useMemo(() => resolveEvidence({ evidence: data.evidence, evidence_spans: data.evidence_spans }, content), [data, content]);
@@ -45,25 +59,20 @@ export function CompositionDataView({ data, description = false, bases = [], onS
   const displayRows = constituentEditor?.index === rows.length && constituentEditor.row ? [...rows,constituentEditor.row] : rows;
   const relations = data.unrepresented_relations || [];
   const showStatus = rows.some((row) => row.constituent_status !== "included");
-  const relationshipSection = ((relations.length > 0 || description) && <section className={`review-relations${description ? " review-other-rules" : ""}`} aria-label={description ? "Other rules" : t("Unrepresented relations")}>
-      <header><strong>{description ? "Other rules" : t("Unrepresented relations")}</strong><small>{relations.length}</small>{description && editable && <button type="button" onClick={() => onSectionAction?.("relationship", undefined, "edit")}>Add note</button>}</header>
-      {!description && <p>{t("Click a relation to verify it in the source.")}</p>}{description && !relations.length && <p className="review-section-empty">No notes.</p>}
-      <ol>{relations.map((relation, index) => {
-        const spans = resolveEvidence(relation, content, scope.length ? scope : undefined);
-        const object = relation && typeof relation === "object" ? relation as Record<string, unknown> : {};
-        const wording = object.description ?? object.relation ?? object.reason ?? object.evidence_text ?? object.evidence;
-        const text = typeof wording === "string" ? wording : spans.map((span) => span.evidence_text).join(" … ");
-        const inheritance = object.kind === "inherits_from" ? relation as InheritanceRelation : null;
-        const base = inheritance ? bases.find(b => Number(b.data.node_no) === inheritance.base_node_no) : null;
-        const body = <>
-          {description && inheritance && <div className="review-inheritance-summary"><strong>Inherits from </strong><button type="button" disabled={!base} onClick={() => base && onSelectBase?.(base.id)}>#{inheritance.base_node_no} · {base?.data.composition_name || "Missing base"}</button><p>Unchanged constituents and restrictions come from the base.</p><ul>{inheritance.changes.map((c, i) => <li key={i}>{c.operation}: {c.ref} ({c.target})</li>)}</ul></div>}
-          {description ? <p className="review-note-text">{typeof wording === "string" ? text : evidencePreview(text)}</p> : <SourceLink value={relation} label={`relation ${index + 1}`} scope={scope.length ? scope : undefined}><span className="review-relation-number">{index + 1}</span><span>{evidencePreview(text) || `Relation ${index + 1}`}</span></SourceLink>}
-          {!description && !spans.length && <small>{t("No matching source range")}</small>}
-          {!description && Object.keys(object).some((key) => !["start", "end", "evidence_text"].includes(key)) && <JsonNode label={t("Details")} value={relation} scope={scope.length ? scope : undefined}/>}
-        </>;
-        return <li key={index}>{description ? <ReviewContextMenu className="review-relation-record" label={`Other rule ${index + 1} actions`} actions={editable ? [{id:"edit",label:"Edit"},{id:"delete",label:"Delete",danger:true}] : []} onAction={action => onSectionAction?.("relationship",index,action as "edit" | "delete")}>{body}</ReviewContextMenu> : body}</li>;
-      })}</ol>
-    </section>);
+  const relationshipSection = (relations.length > 0 && <section className="review-relations" aria-label={t("Unrepresented relations")}>
+    <header><strong>{t("Unrepresented relations")}</strong><small>{relations.length}</small></header>
+    <p>{t("Click a relation to verify it in the source.")}</p>
+    <ol>{relations.map((relation,index)=>{
+      const spans=resolveEvidence(relation,content,scope.length ? scope : undefined);
+      const row=relation && typeof relation==="object" ? relation as Record<string,unknown> : {};
+      const wording=row.description ?? row.relation ?? row.reason ?? row.evidence_text ?? row.evidence;
+      const text=typeof wording==="string" ? wording : spans.map(span=>span.evidence_text).join(" … ");
+      return <li key={index}><SourceLink value={relation} label={`relation ${index+1}`} scope={scope.length ? scope : undefined}><span className="review-relation-number">{index+1}</span><span>{evidencePreview(text) || `Relation ${index+1}`}</span></SourceLink>
+        {!spans.length && <small>{t("No matching source range")}</small>}
+        {Object.keys(row).some(key=>!["start","end","evidence_text"].includes(key)) && <JsonNode label={t("Details")} value={relation} scope={scope.length ? scope : undefined}/>}
+      </li>;
+    })}</ol>
+  </section>);
   return <div className="review-composition-data">
     {!description && relationshipSection}
     {description ? <section className="review-data-section review-description-constituents" aria-label="Constituents"><header><strong>{t("Constituents")}</strong><small>{displayRows.length}</small>{editable && <button type="button" onClick={() => onEditConstituent?.(rows.length)}>Add</button>}</header>{displayRows.length ? <div className="review-description-constituent-list">{alphabeticalConstituents(displayRows).map(({row,index}) => constituentEditor?.index === index ? <div className="review-inline-constituent-slot" key={index}>{constituentEditor.content}</div> : <DescriptionConstituentCard key={index} row={row} index={index} scope={scope} onEdit={() => onEditConstituent?.(index)} onDelete={() => onDeleteConstituent?.(index)} editable={editable}/>)}</div> : <p className="review-data-empty">{t("No constituents recorded.")}</p>}</section> : <details className="review-data-section" open>
@@ -82,11 +91,11 @@ export function CompositionDataView({ data, description = false, bases = [], onS
       <header><strong>Constituent restrictions</strong><small>{data.constraints?.length || 0}</small>{editable && <button type="button" onClick={() => onSectionAction?.("restriction",undefined,"edit")}><Plus size={13}/> Add restriction</button>}</header>
       {!data.constraints?.length && <p className="review-section-empty">No constituent restrictions.</p>}
       {(data.constraints || []).map((c, i) => <ReviewContextMenu className="review-description-restriction" key={i} label={`Constituent restriction ${i + 1} actions`} actions={editable ? [{id:"edit",label:"Edit"},{id:"delete",label:"Delete",danger:true}] : []} onAction={action => onSectionAction?.("restriction",i,action as "edit" | "delete")}>
-        <div className="review-restriction-summary"><strong>{c.mode === "sum" ? "Combined constituent concentration" : "Group constituent selection"}: {(c.member_refs || []).join(c.mode === "sum" ? " + " : ", ")}</strong><small>{c.constituent_status}</small></div>
+        <div className="review-restriction-summary"><strong>{c.mode === "sum" ? "Combined constituent concentration" : "Group constituent selection"}: {(c.member_refs || []).join(c.mode === "sum" ? " + " : ", ")}</strong></div>
         {amount(c) !== "—" && <p>{amount(c)}</p>}
         {c.mode === "any_of" && (c.selection?.min != null || c.selection?.max != null) && <p>Number selected: {c.selection?.min ?? "any"}–{c.selection?.max ?? "any"}</p>}
       </ReviewContextMenu>)}
-      {relationshipSection}
+      <UnrepresentedRestrictions values={relations}/>
     </section> : !!data.constraints?.length && <JsonNode label={t("Constraints")} value={data.constraints} scope={scope.length ? scope : undefined}/>}
     {!description && <JsonNode label={t("Full composition JSON")} value={data} scope={scope.length ? scope : undefined}/>}
   </div>;

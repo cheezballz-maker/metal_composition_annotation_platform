@@ -193,16 +193,17 @@ platform and extraction profile. Current/baseline description rules omit the fie
 composition evidence remains intact. Historical action snapshots remain immutable,
 and undo strips the retired field before restoring an older annotation. Claims
 retain their original editor and evidence requirement.
-The **Other rules** subsection is for free-text notes with Add note, Edit and
-Delete controls. It has no rule-type selector, JSON entry or exact-source-wording
-requirement. New entries use `kind: "source_note"` and `description` inside the
-existing `unrepresented_relations` array, without requiring a note evidence span.
-Existing source-backed relations and all their fields are retained. Editing their
-notes keeps the original provenance; inherited notes remain plain read-only text.
-Relationships that
-cannot be represented precisely can retain source evidence and an explanation as
-a source note. Reviewers choose relationships from source context; they are not
-automatically inferred on save.
+The **Unrepresented restrictions** subsection displays stored
+`unrepresented_relations` as `kind: description`. It is read-only in normal,
+full-composition and inherited views, with no Add, Edit or Delete controls.
+Existing entries and their fields remain unchanged when other sections are saved.
+The extraction skill supplies these entries; this UI change does not create or
+reclassify them. Legacy entries without a description display their source wording.
+
+Both restriction types use the same **Constituents** checkbox list. Group selection
+retains its minimum/maximum selection counts. The redundant group-level Inclusion
+control is hidden; existing stored values are preserved. **Balance** remains available
+for restrictions describing a shared remainder.
 
 In the description UI, use **Add span** in the rightmost Evidence section, select
 text in Source, and click **Attach selected span** in the same Evidence section.

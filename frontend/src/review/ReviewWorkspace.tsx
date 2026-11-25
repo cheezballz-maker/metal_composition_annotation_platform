@@ -5,14 +5,14 @@ import { EvidenceContext, SourceLink, type EvidenceFocus } from "./EvidenceFocus
 import { hasCompositionDraftErrors, nextConstraintId, renameConstraintMemberRefs, selectableConstituentNames, toggleConstraintMember, validateCompositionDraft, type ConstraintDraftFieldErrors } from "./constraintDraft";
 import { resolveEvidence } from "./evidence";
 import { JsonNode } from "./JsonNode";
-import { evidencePreview, CompositionDataView } from "./CompositionDataView";
+import { evidencePreview, CompositionDataView, UnrepresentedRestrictions } from "./CompositionDataView";
 import { RawSourceViewer } from "./RawSourceViewer";
-import { DescriptionConstituents, DescriptionOtherRules } from "./DescriptionFields";
+import { DescriptionConstituents } from "./DescriptionFields";
 import { DescriptionNavigator } from "./DescriptionNavigator";
 import { DescriptionEvidenceSection, DescriptionSpanContext, type DescriptionSpanBridge } from "./DescriptionEvidencePanel";
 import { filterOccurrences, fitDescriptionPanels, indexOccurrences, resizeDescriptionPanels, type DescriptionWidths } from "./descriptionNavigation";
 import { changeInstanceSpan, instanceSpans, sameSpan } from "./descriptionEvidence";
-import { prepareDescriptionConstituent, otherRuleDrafts, prepareOtherRules } from "./descriptionDraft";
+import { prepareDescriptionConstituent } from "./descriptionDraft";
 import { DescriptionReviewControls, FlagReasonPopover } from "./DescriptionReviewControls";
 import { ReviewContextMenu } from "./ReviewContextMenu";
 import { InheritanceCaption, InheritanceSelector, InheritedInformation } from "./DescriptionInheritancePanel";
@@ -447,7 +447,7 @@ function DocumentReviewSection({ description, status, children }: { description:
   return description ? <details className="review-document-controls"><summary>Document review · {formatStatus(status)}</summary>{children}</details> : <>{children}</>;
 }
 
-type DescriptionEditScope = { kind: "details" | "constituent" | "relationship" | "restriction" | "evidence"; index?: number };
+type DescriptionEditScope = { kind: "details" | "constituent" | "restriction" | "evidence"; index?: number };
 
 function DescriptionInstance({ composition, editable: documentEditable, inheritOptions, editRequest, selectedEvidence, onAction, onDraftChange, onSelectBase }: { composition: ReviewComposition; editable: boolean; inheritOptions: ReviewComposition[]; editRequest: {id:string|null;sequence:number}; selectedEvidence: RawEvidence[]; onAction: (action:ReviewAction, options?: {compositionId?:string;data?:unknown;reason?:string;actionId?:string}) => Promise<ReviewDocument|null>; onDraftChange:(next:boolean)=>void; onSelectBase:(id:string)=>void }) {
   const bridge = React.useContext(DescriptionSpanContext)!;
@@ -467,13 +467,13 @@ function DescriptionInstance({ composition, editable: documentEditable, inheritO
     if (editor && JSON.stringify(editor.base) !== JSON.stringify(composition.data)) throw new Error("This composition changed while you were editing. Cancel and reopen its editor to use the latest version. Your draft has not been saved.");
     const result = await onAction("edit",{compositionId:composition.id,data:prepareAddOnlyInheritance(data,inheritOptions),reason,actionId});if(result) close();return result;
   };
-  const sectionAction = (kind:"relationship"|"restriction", index:number|undefined, action:"edit"|"delete") => {
-    const field = kind === "relationship" ? "unrepresented_relations" : "constraints";
+  const sectionAction = (kind:"restriction", index:number|undefined, action:"edit"|"delete") => {
+    const field = "constraints";
     const next = clone(composition.data);
     if (action === "delete") { next[field] = (next[field] || []).filter((_,i)=>i!==index) as never; void save(next); return; }
     if (index == null) {
       const rows = next[field] || [];
-      const item = kind === "relationship" ? {kind:"source_note"} : {constraint_id:nextConstraintId([...(next.constraints || []),...inheritedInformation(next,inheritOptions).constraints]),mode:"sum",member_refs:[],constituent_status:"included",selection:{min:null,max:null},amount_comparator:null};
+      const item = {constraint_id:nextConstraintId([...(next.constraints || []),...inheritedInformation(next,inheritOptions).constraints]),mode:"sum",member_refs:[],constituent_status:"included",selection:{min:null,max:null},amount_comparator:null};
       next[field] = [...rows,item] as never;index=rows.length;
     }
     open({kind,index},next);
@@ -514,7 +514,6 @@ function CompositionEditor({ showClaimNumber = true, inlineConstituent = false, 
   const t = useReviewTranslation();
   const [inheritSourceId, setInheritSourceId] = React.useState("");
   const [saving, setSaving] = React.useState(false);
-  const [ruleDrafts, setRuleDrafts] = React.useState(() => otherRuleDrafts(initial.unrepresented_relations || []));
   const [data, setData] = React.useState<ReviewCompositionData>(() => clone(initial)); const [reason, setReason] = React.useState(""); const [relationsText, setRelationsText] = React.useState(() => JSON.stringify(initial.unrepresented_relations || [], null, 2)); const [relationsError, setRelationsError] = React.useState(""); const [submitError, setSubmitError] = React.useState(""); const [showValidation, setShowValidation] = React.useState(false); const actionId = React.useRef(newActionId()); const renameOrigins = React.useRef(new Map<number, string>());
   const set = (patch: Partial<ReviewCompositionData>) => { setData((current) => ({ ...current, ...patch })); onDraftChange(true); };
   const spanBridge = React.useContext(DescriptionSpanContext);
@@ -614,10 +613,6 @@ function CompositionEditor({ showClaimNumber = true, inlineConstituent = false, 
     if (draftInvalid) { setShowValidation(true); return; }
     try {
       let next:ReviewCompositionData={...data,unrepresented_relations:relations as unknown[]};
-      if (!showClaimNumber && showSection("relationship")) {
-        const prepared=prepareOtherRules(ruleDrafts);
-        next={...next,unrepresented_relations:prepared.rules};
-      }
       if(evidenceEditor && spanBridge?.candidate) {
         if(spanBridge.mode === "replace" && spanBridge.selected) next=changeInstanceSpan(next,spanBridge.selected,spanBridge.candidate,spanBridge.content,spanBridge.requireEvidence);
         else next={...next,evidence_spans:[...(next.evidence_spans || []),spanBridge.candidate]};
@@ -625,15 +620,15 @@ function CompositionEditor({ showClaimNumber = true, inlineConstituent = false, 
       void persist(next);
     } catch (error) { setSubmitError(error instanceof Error ? error.message : t("The composition contains an invalid value.")); }
   };
-  const otherRulesEditor = !showClaimNumber && showSection("relationship") ? <DescriptionOtherRules rows={ruleDrafts} onlyIndex={editScope?.kind === "relationship" ? editScope.index : undefined} change={next=>{setRuleDrafts(next);setSubmitError("");onDraftChange(true);}}/> : undefined;
+
   return <form className={`review-composition-editor${!showClaimNumber ? " review-description-form" : ""}${editScope ? " review-scoped-editor" : ""}${inlineConstituent ? " review-inline-constituent-editor" : ""}`} onSubmit={(event) => { event.preventDefault(); submit(); }}>
     {showClaimNumber && <h3>{submitLabel}</h3>}
     {(!editScope || (!showClaimNumber && editScope.kind === "details")) && (showClaimNumber ? <div className="review-fields"><label>{t("Name")}<input value={data.composition_name || ""} onChange={(event) => set({ composition_name: event.target.value })}/></label>{showClaimNumber && <label>{t("Claim no.")}<input value={String(data.claim_no ?? "")} onChange={(event) => set({ claim_no: event.target.value })}/></label>}<label>{t("Type")}<input value={data.composition_type || ""} onChange={(event) => set({ composition_type: event.target.value })}/></label></div> : <section className={`review-instance-section review-instance-details${inheritanceBase(data) ? " review-derived-instance" : ""}`}><header><h3>Instance details</h3></header><div className="review-fields"><label>{t("Name")}<input value={data.composition_name || ""} onChange={(event) => set({ composition_name: event.target.value })}/></label>{showClaimNumber && <label>{t("Claim no.")}<input value={String(data.claim_no ?? "")} onChange={(event) => set({ claim_no: event.target.value })}/></label>}<label>Material type<input value={data.composition_type || ""} onChange={(event) => set({ composition_type: event.target.value })}/></label></div><InheritanceSelector data={data} records={inheritOptions} onChange={next => {setData(next);onDraftChange(true);}}/></section>)}
     {!showClaimNumber && !inlineConstituent && (!editScope || ["details","constituent","restriction"].includes(editScope.kind)) && <InheritedInformation data={data} records={inheritOptions}/>}
     {showClaimNumber && inheritOptions.length > 0 && <div className="review-inherit-controls"><label>{t("Inherit constituents from")}<select value={inheritSourceId} onChange={(event) => setInheritSourceId(event.target.value)}><option value="">{t("Select a composition")}</option>{inheritOptions.map((item) => <option key={item.id} value={item.id}>{titleFor(item)}{showClaimNumber ? ` · ${t("Claim")} ${String(item.data.claim_no ?? "—")}` : ""}</option>)}</select></label><button type="button" disabled={!inheritSourceId} onClick={inheritConstituents}>{t("Inherit constituents")}</button></div>}
-    {showClaimNumber ? <ConstituentEditor rows={constituents} constraints={constraints} referenceNames={constituentReferenceNames} errors={showValidation ? draftErrors.constituentNames : {}} onNameFocus={beginConstituentRename} onNameBlur={finishConstituentRename} onChange={updateConstituents}/> : showSection("constituent") && <DescriptionConstituents inline={inlineConstituent} onlyIndex={editScope?.index} rows={constituents} evidence={instanceSpans(data)} errors={showValidation ? draftErrors.constituentNames : {}} protectedNames={constraints.flatMap(c => c.member_refs || [])} change={updateConstituents} renderAmount={(row, label, change) => <AmountControls row={row} label={label} labelled compact onChange={change}/>}/>}{(showClaimNumber || showSection("restriction")) && <ConstraintEditor reservedIds={showClaimNumber ? [] : inheritedData.constraints.map(row => String(row.constraint_id))} description={!showClaimNumber} otherRules={otherRulesEditor} onlyIndex={editScope?.kind === "restriction" ? editScope.index : undefined} rows={constraints} constituents={[...constituents, ...inherited]} errors={showValidation ? draftErrors.constraints : {}} onChange={next => set({constraints:next})}/>}
+    {showClaimNumber ? <ConstituentEditor rows={constituents} constraints={constraints} referenceNames={constituentReferenceNames} errors={showValidation ? draftErrors.constituentNames : {}} onNameFocus={beginConstituentRename} onNameBlur={finishConstituentRename} onChange={updateConstituents}/> : showSection("constituent") && <DescriptionConstituents inline={inlineConstituent} onlyIndex={editScope?.index} rows={constituents} evidence={instanceSpans(data)} errors={showValidation ? draftErrors.constituentNames : {}} protectedNames={constraints.flatMap(c => c.member_refs || [])} change={updateConstituents} renderAmount={(row, label, change) => <AmountControls row={row} label={label} labelled compact onChange={change}/>}/>}{(showClaimNumber || showSection("restriction")) && <ConstraintEditor reservedIds={showClaimNumber ? [] : inheritedData.constraints.map(row => String(row.constraint_id))} description={!showClaimNumber} unrepresented={data.unrepresented_relations || []} onlyIndex={editScope?.kind === "restriction" ? editScope.index : undefined} rows={constraints} constituents={[...constituents, ...inherited]} errors={showValidation ? draftErrors.constraints : {}} onChange={next => set({constraints:next})}/>}
 
-    {!showClaimNumber && editScope?.kind === "relationship" && <section className="review-structured-section review-restrictions"><header><strong>Constituent restrictions</strong></header>{otherRulesEditor}</section>}
+
     {showClaimNumber && selectedEvidence.length > 0 && <div className="review-action-row"><button type="button" onClick={() => set({ evidence_spans: [...evidence, ...selectedEvidence.filter((span) => !evidence.some((current) => current.start === span.start && current.end === span.end))] })}>{t("Add")}{t("Selected spans")}: {selectedEvidence.length}</button><button type="button" onClick={() => set({ evidence_spans: selectedEvidence })}>{t("Replace evidence with selection")}</button></div>}
     {showClaimNumber && <EditableEvidenceList evidence={evidence} onRemove={(index) => set({ evidence_spans: evidence.filter((_, evidenceIndex) => evidenceIndex !== index) })}/>}
     {!showClaimNumber && showSection("evidence") && <DescriptionEvidenceSection data={data} editing simpleCapture={evidenceEditor} onlySpan={editScope?.kind === "evidence" ? spanBridge?.selected || undefined : undefined} change={next => set(next)}/>}
@@ -687,7 +682,7 @@ function ConstituentEditor({ rows, constraints, referenceNames, errors, onNameFo
   })}</section>;
 }
 
-function ConstraintEditor({ description = false, otherRules, rows, constituents, errors, onChange, onlyIndex, reservedIds = [] }: { reservedIds?: string[]; onlyIndex?: number; description?: boolean; otherRules?:React.ReactNode; rows: ReviewConstraint[]; constituents: NonNullable<ReviewCompositionData["constituents"]>; errors: Record<number, ConstraintDraftFieldErrors>; onChange: (rows: ReviewConstraint[]) => void }) {
+function ConstraintEditor({ description = false, unrepresented = [], rows, constituents, errors, onChange, onlyIndex, reservedIds = [] }: { reservedIds?: string[]; onlyIndex?: number; description?: boolean; unrepresented?:unknown[]; rows: ReviewConstraint[]; constituents: NonNullable<ReviewCompositionData["constituents"]>; errors: Record<number, ConstraintDraftFieldErrors>; onChange: (rows: ReviewConstraint[]) => void }) {
   const t = useReviewTranslation();
   const update = (index: number, patch: Partial<ReviewConstraint>) => onChange(rows.map((row, rowIndex) => rowIndex === index ? { ...row, ...patch } : row));
   const names = selectableConstituentNames(constituents);
@@ -700,7 +695,7 @@ function ConstraintEditor({ description = false, otherRules, rows, constituents,
     return <div className="review-constraint-row" key={index}>
       {description ? <div className="review-constraint-fields review-restriction-basics">
         <label>Type<select value={row.mode || "sum"} onChange={event => update(index,{mode:event.target.value,...(event.target.value === "sum" ? {selection:{min:null,max:null}} : {})})}><option value="sum">Combined constituent concentration</option><option value="any_of">Group constituent selection</option></select></label>
-        <label>Inclusion<select value={row.constituent_status || "included"} onChange={event => update(index,{constituent_status:event.target.value})}><option value="included">Included</option><option value="optional">Optional</option><option value="excluded">Excluded</option></select></label>
+
       </div> : <div className="review-constraint-fields"><label>{t("Constraint ID")}<input aria-invalid={Boolean(rowErrors.constraint_id)} value={row.constraint_id || ""} onChange={(event) => update(index, { constraint_id: event.target.value })} placeholder={t("Constraint ID")}/></label><label>{t("Mode")}<select value={row.mode || "sum"} onChange={(event) => update(index, { mode: event.target.value })}><option value="sum">{t("sum")}</option><option value="any_of">{t("any of")}</option></select></label><label>{t("Status")}<select value={row.constituent_status || "included"} onChange={(event) => update(index, { constituent_status: event.target.value })}><option value="included">{t("included")}</option><option value="excluded">{t("excluded")}</option><option value="optional">{t("optional")}</option></select></label><label>{t("Selection min")}<input aria-invalid={Boolean(rowErrors.selection)} value={String(row.selection?.min ?? "")} onChange={(event) => update(index, { selection: { ...(row.selection || {}), min: event.target.value || null } })} placeholder={t("Min")}/></label><label>{t("Selection max")}<input aria-invalid={Boolean(rowErrors.selection)} value={String(row.selection?.max ?? "")} onChange={(event) => update(index, { selection: { ...(row.selection || {}), max: event.target.value || null } })} placeholder={t("Max")}/></label><AmountControls row={row} label={row.constraint_id || `Constraint ${index + 1}`} labelled compact={description} onChange={(patch) => update(index, patch)}/><label>{t("Unit")}<input value={row.amount_unit || ""} onChange={(event) => update(index, { amount_unit: event.target.value || null })}/></label></div>}
       {rowErrors.constraint_id && <span className="review-inline-error" role="alert">{t(rowErrors.constraint_id || "")}</span>}
       <fieldset className="review-member-selector" aria-invalid={Boolean(rowErrors.member_refs)}><legend>{description ? "Constituents" : t("Members")}</legend>{names.length ? <div className="review-member-options">{names.map((name) => <label key={name}><input type="checkbox" checked={refs.includes(name)} onChange={(event) => update(index, { member_refs: toggleConstraintMember(refs, name, event.target.checked) })}/><span>{name}</span></label>)}</div> : <small>{t("Add unique constituent names before selecting members.")}</small>}{invalidRefs.length > 0 && <div className="review-invalid-members"><span>{t("Unresolved references:")}</span>{invalidRefs.map(({ ref, refIndex }) => <button type="button" key={`${ref}:${refIndex}`} onClick={() => update(index, { member_refs: refs.filter((_, indexToKeep) => indexToKeep !== refIndex) })}>{ref || "(blank)"} <X size={12}/></button>)}</div>}{rowErrors.member_refs && <span className="review-inline-error" role="alert">{t(rowErrors.member_refs || "")}</span>}</fieldset>
@@ -718,7 +713,7 @@ function ConstraintEditor({ description = false, otherRules, rows, constituents,
       {!description && rowErrors.evidence && <span className="review-inline-error" role="alert">{t(rowErrors.evidence || "")}</span>}
       <button className="review-constraint-remove" type="button" onClick={() => onChange(rows.filter((_, rowIndex) => rowIndex !== index))}>{description ? "Delete restriction" : t("Remove constraint")}</button>
     </div>;
-  })}{otherRules}</section>;
+  })}{description && <UnrepresentedRestrictions values={unrepresented}/>}</section>;
 }
 
 function EvidenceList({ evidence }: { evidence: RawEvidence[] }) {

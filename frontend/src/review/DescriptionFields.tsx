@@ -3,17 +3,7 @@ import { alphabeticalConstituents } from "./descriptionNavigation";
 import { ArrowDown, ArrowUp, Plus, X } from "lucide-react";
 import type { EditableAmount } from "./amountDraft";
 import type { RawEvidence, ReviewAmount, ReviewConstituent } from "./types";
-import { constituentWithAmounts, descriptionAmounts, movePreferredRange, preferredRangeLabel, type OtherRuleDraft } from "./descriptionDraft";
-
-export function DescriptionOtherRules({rows,onlyIndex,change}:{rows:OtherRuleDraft[];onlyIndex?:number;change:(rows:OtherRuleDraft[])=>void}) {
-  return <section className="review-other-rules" aria-label="Other rules editor">
-    <header><strong>Other rules</strong>{onlyIndex==null && <button type="button" onClick={()=>change([...rows,{original:{kind:"source_note"},text:""}])}><Plus size={13}/> Add note</button>}</header>
-    {rows.map((row,index)=>onlyIndex!=null && onlyIndex!==index ? null : <div className="review-other-rule-editor" key={index}>
-      <label>Note<textarea value={row.text} onChange={event=>change(rows.map((item,i)=>i===index ? {...item,text:event.target.value} : item))} placeholder="Add a note about these constituents"/></label>
-      <button className="review-constraint-remove" type="button" onClick={()=>change(rows.filter((_,i)=>i!==index))}>Delete note</button>
-    </div>)}
-  </section>;
-}
+import { constituentWithAmounts, descriptionAmounts, movePreferredRange, preferredRangeLabel } from "./descriptionDraft";
 
 type AmountRenderer = (row: EditableAmount, label: string, change: (patch: Partial<EditableAmount>) => void) => React.ReactNode;
 export function DescriptionConstituents({ rows, evidence, errors = {}, protectedNames = [], change, renderAmount, onlyIndex, inline = false }: { rows: ReviewConstituent[]; evidence: RawEvidence[]; errors?: Record<number, string>; protectedNames?: string[]; change: (rows: ReviewConstituent[]) => void; renderAmount: AmountRenderer; onlyIndex?: number; inline?: boolean }) {
