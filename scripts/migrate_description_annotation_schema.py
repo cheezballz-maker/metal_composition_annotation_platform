@@ -20,6 +20,7 @@ for candidate in (Path.cwd(), Path(__file__).resolve().parents[1]):
         break
 
 from backend.composition_schema import validate_record
+from backend.description_schema import clean_description_composition
 from backend.review_store import ReviewStore
 
 
@@ -46,7 +47,7 @@ def normalize_meta(meta: dict) -> dict:
 
 
 def normalize_composition(composition: dict) -> dict:
-    result = deepcopy(composition)
+    result = clean_description_composition(composition)
     result.pop("claim_no", None)
     return result
 
