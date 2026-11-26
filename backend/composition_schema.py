@@ -111,10 +111,12 @@ def _validate_amount_fields(value: dict[str, Any], path: str) -> None:
         raise ValueError(f"{path}amount_upper_endpoint_type requires amount_upper_value")
 
 
-def _validate_constituent(value: Any, path: str) -> None:
+def _validate_constituent(value: Any, path: str, *, allow_unknown: bool = False) -> None:
     constituent = _require_dict(value, path.rstrip("."))
     _require_string(constituent.get("constituent_name"), f"{path}constituent_name")
-    if constituent.get("constituent_status") not in CONSTITUENT_STATUSES:
+    if constituent.get("constituent_status") not in CONSTITUENT_STATUSES and not (
+        allow_unknown and "constituent_status" in constituent and constituent["constituent_status"] is None
+    ):
         raise ValueError(f"{path}constituent_status is unsupported")
     _validate_amount_fields(constituent, path)
 
@@ -182,7 +184,7 @@ def validate_composition(
     _require_string(composition.get("composition_type"), "composition.composition_type")
     constituents = _require_list(composition.get("constituents"), "composition.constituents")
     for index, constituent in enumerate(constituents):
-        _validate_constituent(constituent, f"composition.constituents[{index}].")
+        _validate_constituent(constituent, f"composition.constituents[{index}].", allow_unknown=not require_constraint_evidence)
     constituent_names = [constituent["constituent_name"] for constituent in constituents]
     if len(set(constituent_names)) != len(constituent_names):
         raise ValueError("composition constituent names must be unique")

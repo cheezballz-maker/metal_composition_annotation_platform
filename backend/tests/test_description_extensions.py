@@ -29,6 +29,27 @@ def description_save_workspace(root):
         path.write_text(json.dumps(doc), encoding="utf-8")
 
 
+def test_unknown_inclusion_is_description_only_and_preserved(tmp_path):
+    root = tmp_path / "review"
+    description_save_workspace(root)
+    store = ReviewStore(root)
+    doc = store.load_document("source-a")
+    updated = deepcopy(doc["compositions"][0]["data"])
+    updated["constituents"][0]["constituent_status"] = None
+    payload = {"action_id": "unknown-save", "action": "edit", "composition_id": "seed:1", "data": updated}
+    saved, _ = store.commit("source-a", expected_revision=0, action_id=payload["action_id"],
+        request_digest=request_digest(payload), actor="alice", role="reviewer", timestamp="2026-11-26T00:00:00+00:00",
+        mutate=workflow_mutator(payload))
+    assert saved["compositions"][0]["data"]["constituents"][0]["constituent_status"] is None
+    assert corrected_record(store.load_document("source-a"))["compositions"][0]["constituents"][0]["constituent_status"] is None
+    with pytest.raises(ValueError, match="constituent_status is unsupported"):
+        validate_composition(updated, "Alloy source claim")
+    for invalid in ("unknown", "", False):
+        updated["constituents"][0]["constituent_status"] = invalid
+        with pytest.raises(ValueError, match="constituent_status is unsupported"):
+            validate_composition(updated, "Alloy source claim", require_constraint_evidence=False)
+
+
 def test_preferred_ranges_save_through_real_http_api_without_finalizing_or_changing_other_sections(tmp_path, monkeypatch):
     import importlib
     from fastapi.testclient import TestClient

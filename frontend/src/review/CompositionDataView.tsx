@@ -110,6 +110,6 @@ export function CompositionDataView({ data, description = false, bases = [], onS
 function DescriptionConstituentCard({ row, index, scope, onEdit, onDelete, editable }: { row: ReviewConstituent; index: number; scope: RawEvidence[]; onEdit: () => void; onDelete: () => void; editable: boolean }) {
   const amounts = descriptionAmounts(row, scope);
   return <DescriptionEditableItem className="review-description-constituent" label={`Edit constituent ${row.constituent_name || index + 1}`} onEdit={editable ? onEdit : undefined} onDelete={editable ? onDelete : undefined} deleteLabel={`Delete constituent ${row.constituent_name || index + 1}`}>
-    <span className="review-constituent-identity"><strong>{row.constituent_name || `Constituent ${index + 1}`}</strong><small>{row.constituent_status || "included"}</small></span><span className="review-description-constituent-values">{row.amounts ? amounts.map((amountRow, j) => <span className="review-range-summary" key={j}><small>{preferredRangeLabel(amountRow)}</small><span>{amount(amountRow)}</span></span>) : amount(row)}</span>
+    <span className="review-constituent-identity"><strong>{row.constituent_name || `Constituent ${index + 1}`}</strong><small>{row.constituent_status ?? "unknown"}</small></span><span className="review-description-constituent-values">{row.amounts ? amounts.map((amountRow, j) => <span className="review-range-summary" key={j}><small>{preferredRangeLabel(amountRow)}</small><span>{amount(amountRow)}</span></span>) : amount(row)}</span>
   </DescriptionEditableItem>;
 }

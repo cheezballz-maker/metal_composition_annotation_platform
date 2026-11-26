@@ -33,7 +33,7 @@ export function InheritedInformation({ data, records }: { data: ReviewCompositio
   return <section className="review-inherited-information" aria-label="Inherited information">
     <header><strong>Inherited</strong><span>Read-only</span></header>
     {inherited.constituents.length > 0 && <div className="review-inherited-constituents" aria-label="Inherited constituents">{alphabeticalConstituents(inherited.constituents).map(({row}) => <div className="review-inherited-row" key={row.constituent_name}>
-      <span><strong>{row.constituent_name}</strong><small>{row.constituent_status || "included"}</small></span>
+      <span><strong>{row.constituent_name}</strong><small>{row.constituent_status ?? "unknown"}</small></span>
       <span>{row.amounts ? row.amounts.map((amount, i) => <span className="review-inherited-amount" key={i}><small>{preferredRangeLabel(amount)}</small> {formatCompositionAmount(amount)}</span>) : formatCompositionAmount(row)}</span>
     </div>)}</div>}
     {(inherited.constraints.length > 0 || inherited.otherRules.length > 0) && <div className="review-inherited-restrictions" aria-label="Inherited constituent restrictions"><strong>Constituent restrictions</strong>{inherited.constraints.map(row => <div className="review-inherited-restriction" key={row.constraint_id}>{row.mode === "ratio" ? <RatioSummary row={row} constituents={[...inherited.constituents,...(data.constituents || [])]}/> : <><p>Constituents: {row.member_refs?.join(", ")}</p>{formatCompositionAmount(row) !== "—" && <p>Combined constituent concentration: {formatCompositionAmount(row)}</p>}{restrictionSelectionLabel(row) && <p>Number included: {restrictionSelectionLabel(row)}</p>}</>}</div>)}
