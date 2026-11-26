@@ -2,7 +2,7 @@ import { useReviewTranslation, ReviewLocale } from "./locale";
 import React from "react";
 import { ArrowLeft, Check, ChevronRight, CircleAlert, FileDiff, Plus, RotateCcw, Save, Send, Undo2, X } from "lucide-react";
 import { EvidenceContext, SourceLink, type EvidenceFocus } from "./EvidenceFocus";
-import { descriptionRestrictionSelectionPatch, hasCompositionDraftErrors, nextConstraintId, renameConstraintMemberRefs, selectableConstituentNames, toggleConstraintMember, validateCompositionDraft, type ConstraintDraftFieldErrors } from "./constraintDraft";
+import { descriptionRestrictionSelectionPatch, hasCompositionDraftErrors, nextConstraintId, removeDescriptionConstituent, renameConstraintMemberRefs, selectableConstituentNames, toggleConstraintMember, validateCompositionDraft, type ConstraintDraftFieldErrors } from "./constraintDraft";
 import { resolveEvidence } from "./evidence";
 import { JsonNode } from "./JsonNode";
 import { evidencePreview, CompositionDataView, UnrepresentedRestrictions } from "./CompositionDataView";
@@ -435,6 +435,24 @@ function DocumentReviewSection({ description, status, children }: { description:
   return description ? <details className="review-document-controls"><summary>Document review · {formatStatus(status)}</summary>{children}</details> : <>{children}</>;
 }
 
+function useConstituentDeletion(commit: (data:ReviewCompositionData)=>void, onPendingChange?: (pending:boolean)=>void) {
+  const [pending,setPending] = React.useState<{data:ReviewCompositionData;name:string;count:number}|null>(null);
+  const cancel = () => {setPending(null);onPendingChange?.(false);};
+  React.useEffect(() => {
+    if (!pending) return;
+    const escape=(event:KeyboardEvent)=>{if(event.key === "Escape"){event.preventDefault();event.stopImmediatePropagation();cancel();}};
+    window.addEventListener("keydown",escape,true);return()=>window.removeEventListener("keydown",escape,true);
+  },[pending,onPendingChange]);
+  const request = (data:ReviewCompositionData,index:number) => {
+    const next=removeDescriptionConstituent(data,index);
+    const count=(data.constraints?.length || 0)-(next.constraints?.length || 0);
+    if (!count) {commit(next);return;}
+    setPending({data:next,name:data.constituents![index].constituent_name,count});onPendingChange?.(true);
+  };
+  const confirmation = pending && <div className="review-delete-confirmation" role="alertdialog" aria-label="Confirm constituent deletion"><p>Delete <strong>{pending.name}</strong> and the {pending.count} constituent restriction{pending.count === 1 ? "" : "s"} that use{pending.count === 1 ? "s" : ""} it?</p><div className="review-action-row"><button type="button" className="review-danger" aria-label="Confirm delete constituent and restrictions" onClick={()=>{const next=pending.data;cancel();commit(next);}}>Delete</button><button type="button" autoFocus onClick={cancel}>Cancel deletion</button></div></div>;
+  return {request,confirmation,pending:Boolean(pending)};
+}
+
 type DescriptionEditScope = { kind: "details" | "constituent" | "restriction" | "evidence"; index?: number; field?: "composition_name" | "composition_type" | "inherits_from" };
 
 function DescriptionInstance({ composition, editable: documentEditable, inheritOptions, selectedEvidence, onAction, onDraftChange }: { composition: ReviewComposition; editable: boolean; inheritOptions: ReviewComposition[]; selectedEvidence: RawEvidence[]; onAction: (action:ReviewAction, options?: {compositionId?:string;data?:unknown;reason?:string;actionId?:string}) => Promise<ReviewDocument|null>; onDraftChange:(next:boolean)=>void }) {
@@ -466,16 +484,18 @@ function DescriptionInstance({ composition, editable: documentEditable, inheritO
     }
     open({kind,index},next);
   };
-  const deleteConstituent = (index:number) => {const next=clone(composition.data);next.constituents=next.constituents?.filter((_,i)=>i!==index);remove(next);};
+  const deletion=useConstituentDeletion(remove,onDraftChange);
+  const deleteConstituent = (index:number) => deletion.request(composition.data,index);
   const editorView = editor && editable ? <CompositionEditor key={editor.key} inlineSection inlineConstituent={editor.scope.kind === "constituent"} showClaimNumber={false} initial={editor.initial} editScope={editor.scope} inheritOptions={inheritOptions} selectedEvidence={selectedEvidence} requiredReason={false} submitLabel="Save changes" onCancel={close} onSave={save} onDraftChange={onDraftChange}/> : null;
-  const viewEditable = editable && !editor && !busy;
+  const viewEditable = editable && !editor && !busy && !deletion.pending;
   const parent = inheritOptions.find(record => Number(record.data.node_no) === inheritanceBase(composition.data));
   return <DescriptionSpanContext.Provider value={{...bridge,editable:viewEditable}}><section className="review-composition-card review-description-instance">
     <section className={`review-instance-section review-instance-details${inheritanceBase(composition.data) ? " review-derived-instance" : ""}`}><header><h3>Instance details</h3></header><div className="review-instance-fields">
-      {([['composition_name','Name',composition.data.composition_name || 'Unnamed composition'],['composition_type','Material type',composition.data.composition_type || '—'],['inherits_from','Inherits from',parent ? `Composition Instance ${instanceNumber(parent)}: ${titleFor(parent)}` : inheritanceBase(composition.data) ? `Composition Instance ${inheritanceBase(composition.data)}` : 'None']] as const).map(([field,label,value]) => editor?.scope.kind === "details" && editor.scope.field === field ? <div className="review-inline-slot" key={field}>{editorView}</div> : <DescriptionEditableItem key={field} className="review-instance-field" label={`Edit ${label.toLowerCase()}`} onEdit={viewEditable ? () => open({kind:"details",field}) : undefined} onDelete={viewEditable && field === "inherits_from" && inheritanceBase(composition.data) ? () => remove(setInheritanceBase(clone(composition.data),null)) : undefined} deleteLabel="Clear inheritance link"><small>{label}</small><span>{value}</span></DescriptionEditableItem>)}
+      {([['composition_name','Name',composition.data.composition_name || 'Unnamed composition'],['composition_type','Material type',composition.data.composition_type || '—'],['inherits_from','Inherits from',parent ? `Composition Instance ${instanceNumber(parent)}: ${titleFor(parent)}` : inheritanceBase(composition.data) ? `Composition Instance ${inheritanceBase(composition.data)}` : 'None']] as const).map(([field,label,value]) => editor?.scope.kind === "details" && editor.scope.field === field ? <div className={`review-inline-slot review-instance-field-${field}`} key={field}>{editorView}</div> : <DescriptionEditableItem key={field} className={`review-instance-field review-instance-field-${field}`} label={`Edit ${label.toLowerCase()}`} onEdit={viewEditable ? () => open({kind:"details",field}) : undefined} onDelete={viewEditable && field === "inherits_from" && inheritanceBase(composition.data) ? () => remove(setInheritanceBase(clone(composition.data),null)) : undefined} deleteLabel="Clear inheritance link"><small>{label}</small><span>{value}</span></DescriptionEditableItem>)}
     </div></section>
     <InheritedInformation data={editor?.scope.field === "inherits_from" && bridge.data ? bridge.data : composition.data} records={inheritOptions}/>
     {mutationError && <p className="review-inline-error" role="alert">{mutationError}</p>}
+    {deletion.confirmation}
     <CompositionDataView data={composition.data} description editable={viewEditable} constituentEditor={editor?.scope.kind === "constituent" && editor.scope.index != null ? {index:editor.scope.index,row:editor.initial.constituents?.[editor.scope.index],content:editorView} : undefined} restrictionEditor={editor?.scope.kind === "restriction" && editor.scope.index != null ? {index:editor.scope.index,content:editorView} : undefined} onEditConstituent={index=>{const next=clone(composition.data);if(index === (next.constituents || []).length) next.constituents=[...(next.constituents || []),{constituent_name:"",constituent_status:"included"}];open({kind:"constituent",index},next);}} onDeleteConstituent={deleteConstituent} onSectionAction={sectionAction}/>
     <DescriptionEvidenceSection data={composition.data} editing={false} inlineEditor={editor?.scope.kind === "evidence" ? {span:bridge.selected || undefined,content:editorView} : undefined}/>
   </section></DescriptionSpanContext.Provider>;
@@ -575,16 +595,16 @@ function CompositionEditor({ showClaimNumber = true, inlineConstituent = false, 
     } catch (error) { setSubmitError(error instanceof Error ? error.message : "Could not save this section."); return null; }
     finally { setSaving(false); }
   };
+  const deletion=useConstituentDeletion(next=>{void persist(next,true);});
   const scopedConstituent = editScope?.kind === "constituent" && editScope.index != null ? constituents[editScope.index] : null;
   const canDeleteConstituent = scopedConstituent && Boolean(initial.constituents?.[editScope!.index!]?.constituent_name);
-  const referencedConstituent = Boolean(scopedConstituent && constraints.some(constraint => constraint.member_refs?.includes(scopedConstituent.constituent_name)));
   const deleteSection = () => {
     if(saving) return;
     setSubmitError("");
     try {
       let next = data;
       if (evidenceEditor && spanBridge?.selected) next=changeInstanceSpan(data,spanBridge.selected,null,spanBridge.content,spanBridge.requireEvidence);
-      else if (canDeleteConstituent && !referencedConstituent) next={...data,constituents:constituents.filter((_,index)=>index!==editScope?.index)};
+      else if (canDeleteConstituent) {deletion.request(data,editScope!.index!);return;}
       else return;
       void persist(next, true);
     } catch(error) {setSubmitError(error instanceof Error ? error.message : "Could not delete this item.");}
@@ -627,7 +647,8 @@ function CompositionEditor({ showClaimNumber = true, inlineConstituent = false, 
     {showClaimNumber && <label>{t("Reason")}{requiredReason && <em>{t("required")}</em>}<textarea value={reason} onChange={(event) => { setReason(event.target.value); onDraftChange(true); }} placeholder={t("Explain the change")}/></label>}
     {showClaimNumber && <details><summary>{t("Before / after preview")}</summary><div className="review-composition-data"><JsonNode label={t("Before")} value={initial}/><JsonNode label={t("After")} value={data}/></div></details>}
     {submitError && <span className="review-inline-error" role="alert">{t(submitError)}</span>}
-    <div className="review-action-row"><button className="review-primary" type="submit" disabled={saving || (requiredReason && !reason.trim()) || (showValidation && draftInvalid) || (evidenceEditor && (!spanBridge?.candidate || sameSpan(spanBridge.candidate,spanBridge.selected)))}><Save size={14}/>{saving ? "Saving…" : submitLabel}</button>{(canDeleteConstituent || (evidenceEditor && spanBridge?.selected)) && <button type="button" className="review-delete-button" disabled={saving || (!evidenceEditor && referencedConstituent)} title={referencedConstituent && !evidenceEditor ? "Remove restriction memberships first" : undefined} onClick={deleteSection}>{evidenceEditor ? "Delete span" : "Delete constituent"}</button>}<button type="button" disabled={saving} onClick={onCancel} title="Esc">{t("Cancel")}</button></div>
+    {deletion.confirmation}
+    <div className="review-action-row"><button className="review-primary" type="submit" disabled={saving || (requiredReason && !reason.trim()) || (showValidation && draftInvalid) || (evidenceEditor && (!spanBridge?.candidate || sameSpan(spanBridge.candidate,spanBridge.selected)))}><Save size={14}/>{saving ? "Saving…" : submitLabel}</button>{(canDeleteConstituent || (evidenceEditor && spanBridge?.selected)) && <button type="button" className="review-delete-button" disabled={saving} onClick={deleteSection}>{evidenceEditor ? "Delete span" : "Delete constituent"}</button>}<button type="button" disabled={saving} onClick={onCancel} title="Esc">{t("Cancel")}</button></div>
   </form>;
 }
 

@@ -507,7 +507,7 @@ button:disabled { opacity: .5; cursor: not-allowed; }
 
 /* Patent Descriptions: direct editing, consistent content insets, inline forms. */
 .review-description .review-direct-item { position:relative; min-width:0; }
-.review-description .review-direct-content { display:grid; gap:5px; width:100%; min-width:0; padding:9px 30px 9px 10px; margin:0; border:0; border-radius:4px; background:transparent; color:inherit; text-align:left; font:inherit; line-height:1.5; }
+.review-description .review-direct-content { display:grid; gap:5px; width:100%; min-width:0; padding:9px 30px 9px 10px; margin:0; border:0; border-radius:4px; background:transparent; color:inherit; text-align:left; font:inherit; line-height:1.5; align-items:start; justify-content:stretch; justify-items:start; }
 .review-description button.review-direct-content { cursor:pointer; }
 .review-description button.review-direct-content:hover { background:rgba(148,163,184,.09); }
 .review-description .review-hover-delete { position:absolute; right:4px; top:5px; display:inline-grid; place-items:center; width:25px; min-height:25px; padding:2px; border:0; background:transparent; color:#b91c1c; opacity:0; pointer-events:none; }
@@ -524,8 +524,10 @@ button:disabled { opacity: .5; cursor: not-allowed; }
 .review-description .review-instance-span { padding:0; border:1px solid #e2e8f0; border-radius:4px; background:#f8fafc; }
 .review-description .review-instance-spans > .review-instance-span > .review-direct-content { display:grid; padding:9px 30px 9px 10px; border:0; background:transparent; border-radius:4px; }
 .review-description .review-instance-spans > .review-instance-span > .review-direct-content:hover { background:rgba(148,163,184,.09); }
-.review-description .review-instance-fields { display:grid; gap:2px; }
-.review-description .review-instance-field .review-direct-content { padding:7px 30px 7px 10px; }
+.review-description .review-instance-fields { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); align-items:start; gap:6px 12px; }
+.review-description .review-instance-field-inherits_from { grid-column:1 / -1; }
+.review-description .review-instance-fields .review-inline-editor { padding:6px; }
+.review-description .review-instance-field .review-direct-content { padding:4px 26px 4px 0; }
 .review-description .review-instance-field small { color:#64748b; font-size:12px; }
 .review-description .review-instance-field span { overflow-wrap:anywhere; font-size:13px; }
 .review-description .review-inline-slot { min-width:0; }
@@ -543,3 +545,7 @@ button:disabled { opacity: .5; cursor: not-allowed; }
 .review-description .review-occurrence-actions button { position:static; opacity:1; pointer-events:auto; width:25px; min-height:25px; padding:3px; border:0; background:transparent; }
 .review-description .review-occurrence-row { padding-right:58px; }
 @media (hover:none) { .review-description .review-hover-delete, .review-description .review-occurrence-actions { opacity:1; pointer-events:auto; } }
+
+.review-description .review-delete-confirmation { padding:8px 10px; margin:6px 0; border:1px solid #f0c5bf; border-radius:4px; background:#fff8f6; text-align:left; }
+.review-description .review-delete-confirmation p { margin:0 0 6px; font-size:12px; }
+.review-description .review-delete-confirmation .review-action-row { position:static; margin:0; padding:0; background:transparent; justify-content:flex-start; }

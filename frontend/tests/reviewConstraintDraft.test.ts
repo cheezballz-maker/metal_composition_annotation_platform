@@ -3,6 +3,7 @@ import {
   restrictionSelectionLabel,
   hasCompositionDraftErrors,
   nextConstraintId,
+  removeDescriptionConstituent,
   renameConstraintMemberRefs,
   selectableConstituentNames,
   toggleConstraintMember,
@@ -81,5 +82,16 @@ expect(restrictionSelectionLabel(constraint({selection:{min:1,max:2}})) === "1â€
 expect(restrictionSelectionLabel(constraint({selection:{min:2,max:2}})) === "2", "exact count is shown once");
 expect(restrictionSelectionLabel(constraint({selection:{min:1,max:null}})) === "At least 1", "minimum-only count is clear");
 expect(restrictionSelectionLabel(constraint({mode:"sum",selection:{min:1,max:2}})) === "1â€“2", "legacy counts remain visible irrespective of mode");
+
+const deletionInput: ReviewCompositionData = {...claimEight, inherits_from: 12, constraints:[constraint({constraint_id:"dependent",member_refs:["silver","copper"]}),constraint({constraint_id:"kept",member_refs:["cerium"]})],evidence_spans:[{start:0,end:5,evidence_text:"alloy"}],unrepresented_relations:[{kind:"complex_expression",description:"kept"}]};
+const originalDeletion = JSON.stringify(deletionInput);
+const deleted = removeDescriptionConstituent(deletionInput,0);
+expect(deleted.constituents?.length === deletionInput.constituents!.length-1 && !deleted.constituents?.some(row=>row.constituent_name === "silver"), "deletion targets the original index, not sorted display position");
+expect(deleted.constraints?.length === 1 && deleted.constraints[0] === deletionInput.constraints![1], "dependent restrictions are removed whole, unrelated restrictions are preserved exactly");
+expect(deleted.inherits_from === 12 && deleted.evidence_spans === deletionInput.evidence_spans && deleted.unrepresented_relations === deletionInput.unrepresented_relations, "deletion preserves inheritance, evidence and unrepresented restrictions");
+expect(JSON.stringify(deletionInput) === originalDeletion, "deletion does not mutate the confirmed record");
+expect(removeDescriptionConstituent(deletionInput,1).constraints?.length === 2, "unreferenced deletion leaves restrictions intact");
+let missingDeletionFailed=false;try {removeDescriptionConstituent(deletionInput,99);} catch {missingDeletionFailed=true;}
+expect(missingDeletionFailed,"a stale index cannot delete an unrelated row");
 
 console.log("review constraint draft tests passed");

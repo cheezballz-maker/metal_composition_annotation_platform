@@ -114,7 +114,9 @@ additional source or formulation selectors.
 
 Click a local constituent to edit it inline at its alphabetical position; other
 confirmed constituents remain visible. Hover over an item to reveal its delete X.
-Constituents used by restrictions must be removed from those restrictions first.
+Deleting a constituent used by local restrictions opens an inline confirmation
+to remove the constituent and those restrictions together. Cancel keeps both;
+Ctrl+Z restores the complete change. Unreferenced constituents delete directly.
 Preferred amounts retain their individual delete controls. Local and inherited
 lists display alphabetically without rewriting stored order. Cancel/Esc discards
 the open draft. Existing instances have no whole-record editor; the form used to
@@ -217,8 +219,9 @@ be removed without replacement. In a new-composition draft, use Add span, select
 text in Source and Attach selected span before saving the new composition.
 Clicking a source highlight only navigates to its composition, without editing.
 
-Instance details always show Name, Material type and Inherits from (None when
-unset). Each field opens its own inline editor. Inheritance previews remain
+Instance details show compact side-by-side Name and Material type fields, with
+Inherits from below (None when unset). Each field keeps its width when edited.
+The constituent/restriction heading counts are hidden; restriction details align left. Inheritance previews remain
 read-only, and saving a field preserves unrelated data. Hover X clears an optional
 base link subject to validation; required names/material types cannot be cleared.
 Action history remains stored and exported, and is hidden from this UI.

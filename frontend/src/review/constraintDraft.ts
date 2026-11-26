@@ -54,6 +54,16 @@ export function restrictionSelectionLabel(row: ReviewConstraint): string | null 
   return null;
 }
 
+/** Removing a constituent must not turn a shared restriction into a different rule. */
+export function removeDescriptionConstituent(data: ReviewCompositionData, index: number): ReviewCompositionData {
+  const constituent = data.constituents?.[index];
+  if (!constituent) throw new Error("This constituent is no longer available. Reopen its editor.");
+  return { ...data,
+    constituents: data.constituents!.filter((_, i) => i !== index),
+    constraints: (data.constraints || []).filter(rule => !rule.member_refs?.includes(constituent.constituent_name)),
+  };
+}
+
 export function renameConstraintMemberRefs(rows: ReviewConstraint[], before: string, after: string): ReviewConstraint[] {
   if (!before || !after || before === after) return rows;
   return rows.map((row) => ({

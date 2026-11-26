@@ -77,7 +77,7 @@ export function CompositionDataView({ data, description = false, bases = [], onS
   </section>);
   return <div className="review-composition-data">
     {!description && relationshipSection}
-    {description ? <section className="review-data-section review-description-constituents" aria-label="Constituents"><header><strong>{t("Constituents")}</strong><small>{displayRows.length}</small>{editable && <button type="button" onClick={() => onEditConstituent?.(rows.length)}>Add</button>}</header>{displayRows.length ? <div className="review-description-constituent-list">{alphabeticalConstituents(displayRows).map(({row,index}) => constituentEditor?.index === index ? <div className="review-inline-constituent-slot" key={index}>{constituentEditor.content}</div> : <DescriptionConstituentCard key={index} row={row} index={index} scope={scope} onEdit={() => onEditConstituent?.(index)} onDelete={() => onDeleteConstituent?.(index)} editable={editable} protectedName={restrictions.some(c => c.member_refs?.includes(row.constituent_name))}/>)}</div> : <p className="review-data-empty">{t("No constituents recorded.")}</p>}</section> : <details className="review-data-section" open>
+    {description ? <section className="review-data-section review-description-constituents" aria-label="Constituents"><header><strong>{t("Constituents")}</strong>{editable && <button type="button" onClick={() => onEditConstituent?.(rows.length)}>Add</button>}</header>{displayRows.length ? <div className="review-description-constituent-list">{alphabeticalConstituents(displayRows).map(({row,index}) => constituentEditor?.index === index ? <div className="review-inline-constituent-slot" key={index}>{constituentEditor.content}</div> : <DescriptionConstituentCard key={index} row={row} index={index} scope={scope} onEdit={() => onEditConstituent?.(index)} onDelete={() => onDeleteConstituent?.(index)} editable={editable}/>)}</div> : <p className="review-data-empty">{t("No constituents recorded.")}</p>}</section> : <details className="review-data-section" open>
       <summary><ChevronRight size={14}/><strong>{t("Constituents")}</strong><small>{rows.length}</small></summary>
       {rows.length ? <div className="review-constituent-table-scroll"><table className="review-constituent-table">
         <caption className="review-visually-hidden">{t("Constituents of")}{data.composition_name || "this composition"}</caption>
@@ -90,7 +90,7 @@ export function CompositionDataView({ data, description = false, bases = [], onS
       </table></div> : <p className="review-data-empty">{t("No constituents recorded.")}</p>}
     </details>}
     {description ? <section className="review-structured-section review-restrictions" aria-label="Constituent restrictions">
-      <header><strong>Constituent restrictions</strong><small>{data.constraints?.length || 0}</small>{editable && <button type="button" onClick={() => onSectionAction?.("restriction",undefined,"edit")}><Plus size={13}/> Add restriction</button>}</header>
+      <header><strong>Constituent restrictions</strong>{editable && <button type="button" onClick={() => onSectionAction?.("restriction",undefined,"edit")}><Plus size={13}/> Add restriction</button>}</header>
       {!data.constraints?.length && <p className="review-section-empty">No constituent restrictions.</p>}
       {restrictions.map((c, i) => restrictionEditor?.index === i ? <div className="review-inline-slot" key={i}>{restrictionEditor.content}</div> : <DescriptionEditableItem key={i} className="review-description-restriction" label={`Edit constituent restriction ${i + 1}`} onEdit={editable ? () => onSectionAction?.("restriction",i,"edit") : undefined} onDelete={editable ? () => onSectionAction?.("restriction",i,"delete") : undefined} deleteLabel={`Delete constituent restriction ${i + 1}`}>
         <strong>Constituents: {(c.member_refs || []).join(", ")}</strong>
@@ -104,9 +104,9 @@ export function CompositionDataView({ data, description = false, bases = [], onS
   </div>;
 }
 
-function DescriptionConstituentCard({ row, index, scope, onEdit, onDelete, editable, protectedName }: { row: ReviewConstituent; index: number; scope: RawEvidence[]; onEdit: () => void; onDelete: () => void; editable: boolean; protectedName: boolean }) {
+function DescriptionConstituentCard({ row, index, scope, onEdit, onDelete, editable }: { row: ReviewConstituent; index: number; scope: RawEvidence[]; onEdit: () => void; onDelete: () => void; editable: boolean }) {
   const amounts = descriptionAmounts(row, scope);
-  return <DescriptionEditableItem className="review-description-constituent" label={`Edit constituent ${row.constituent_name || index + 1}`} onEdit={editable ? onEdit : undefined} onDelete={editable ? onDelete : undefined} deleteLabel={`Delete constituent ${row.constituent_name || index + 1}`} deleteDisabled={protectedName ? "Remove restriction memberships first" : undefined}>
+  return <DescriptionEditableItem className="review-description-constituent" label={`Edit constituent ${row.constituent_name || index + 1}`} onEdit={editable ? onEdit : undefined} onDelete={editable ? onDelete : undefined} deleteLabel={`Delete constituent ${row.constituent_name || index + 1}`}>
     <span className="review-constituent-identity"><strong>{row.constituent_name || `Constituent ${index + 1}`}</strong><small>{row.constituent_status || "included"}</small></span><span className="review-description-constituent-values">{row.amounts ? amounts.map((amountRow, j) => <span className="review-range-summary" key={j}><small>{preferredRangeLabel(amountRow)}</small><span>{amount(amountRow)}</span></span>) : amount(row)}</span>
   </DescriptionEditableItem>;
 }
