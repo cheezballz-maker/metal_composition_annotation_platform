@@ -129,6 +129,45 @@ the draft, no-op saves show "No changes to save", and only actual revision
 mismatches show the update-conflict panel. Transport/server failures may offer a
 retry because their persistence outcome is uncertain. Cancel/Esc discards drafts.
 
+### Constituent ratios in Patent Descriptions
+
+Use **Add ratio** under Constituent restrictions. Click constituent checkboxes in
+ratio order; numbered markers show their positions. Select **Enter ratio** for
+per-member values or finite closed ranges, or **Use concentrations** to calculate
+from Base values. Local and inherited constituents are available. Reselecting a
+member moves it to the end; unsaved entered values are retained when switching
+input modes. Ratio cards edit inline and retain Delete/Cancel/Esc and Ctrl+Z.
+
+The ratio contract adds one mode and one optional field to `constraints`:
+
+```json
+{"constraint_id":"k3","mode":"ratio","member_refs":["Cu","Ni","Al"],"ratio_values":[1,[2,3],4]}
+```
+
+`member_refs` preserves selection order. Each entered value is a non-negative
+number or `[lower, upper]` closed range; values align positionally with the
+members. At least two different members and one nonzero value are required.
+Calculated ratios omit `ratio_values`; no calculated numbers, basis, units,
+inclusion, selection counts or separate evidence are stored on the ratio.
+Composition evidence continues to support the record. Exports retain member
+order, and canonical identity never sorts ratio members independently of values.
+Claims retain their original restriction contract.
+
+Calculation uses Base concentrations only, with the first selected constituent
+normalized to 1. For another member B and reference A, bounds are
+`B.lower / A.upper` and `B.upper / A.lower`. Supported compatible concentration
+units are reconciled for arithmetic, without mass/atomic conversion. Missing or
+preferred-only Base values, excluded members, unresolved balances, incompatible
+units, non-finite/unbounded inputs and a nonpositive reference lower bound block
+calculation. Range endpoints retain open/closed/approximate meaning in the preview.
+Bounds assume independently varying input concentrations; other restrictions are
+not solved, and bounds sharing an uncertain reference are not independent
+combinations. Stored concentrations remain authoritative.
+
+Calculated ratios recompute after concentration or inherited-base edits.
+Validation rejects edits that would leave a saved calculated ratio invalid;
+previous data remain intact. Existing annotations are not converted or migrated.
+
 ### Add-only inheritance in Patent Descriptions
 
 An inherited instance is a separate composition with the same editable fields as

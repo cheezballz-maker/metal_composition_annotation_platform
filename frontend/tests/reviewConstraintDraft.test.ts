@@ -1,3 +1,4 @@
+import { prepareRatio, ratioIntervals, ratioIntervalText, ratioProblem, toggleRatioMember } from "../src/review/ratios";
 import {
   descriptionRestrictionSelectionPatch,
   restrictionSelectionLabel,
@@ -93,5 +94,23 @@ expect(JSON.stringify(deletionInput) === originalDeletion, "deletion does not mu
 expect(removeDescriptionConstituent(deletionInput,1).constraints?.length === 2, "unreferenced deletion leaves restrictions intact");
 let missingDeletionFailed=false;try {removeDescriptionConstituent(deletionInput,99);} catch {missingDeletionFailed=true;}
 expect(missingDeletionFailed,"a stale index cannot delete an unrelated row");
+
+const ratioRows=[{constituent_name:"A",constituent_status:"included",amount_comparator:"range",amount_unit:"wt%",amount_lower_value:2,amount_upper_value:4,amount_lower_endpoint_type:"closed" as const,amount_upper_endpoint_type:"closed" as const},{constituent_name:"B",constituent_status:"included",amount_comparator:"equal",amount_unit:"wt%",amount_value:6},{constituent_name:"C",constituent_status:"included",amount_comparator:"equal",amount_unit:"wt%",amount_value:12}];
+const calculatedRatio:ReviewConstraint={constraint_id:"ratio",mode:"ratio",member_refs:["A","B","C"]};
+expect(JSON.stringify(ratioIntervals(calculatedRatio,ratioRows).map(v=>[v.lower,v.upper])) === JSON.stringify([[1,1],[1.5,3],[3,6]]),"ratio range bounds cross lower/upper concentration endpoints");
+expect(ratioIntervals({...calculatedRatio,ratio_values:[1,[2,3],4]},ratioRows)[1].upper===3,"entered multi-member ranges retain their supplied values");
+expect(!("ratio_values" in prepareRatio(calculatedRatio)),"calculated ratios store references only");
+let selectionRatio:ReviewConstraint={constraint_id:"ratio",mode:"ratio",member_refs:[],ratio_values:[]};
+selectionRatio=toggleRatioMember(selectionRatio,"B",true);selectionRatio=toggleRatioMember(selectionRatio,"A",true);selectionRatio.ratio_values=[2,1];selectionRatio=toggleRatioMember(selectionRatio,"B",false);
+expect(selectionRatio.member_refs?.join() === "A" && selectionRatio.ratio_values?.[0]===1,"selection order and aligned values survive member removal");
+expect(Boolean(ratioProblem({...calculatedRatio,ratio_values:[0,0,0]},ratioRows)),"all-zero entered ratios are rejected");
+expect(Boolean(ratioProblem(calculatedRatio,[{...ratioRows[0],amount_lower_value:0},...ratioRows.slice(1)])),"zero reference bounds cannot be divided");
+expect(Boolean(ratioProblem(calculatedRatio,[ratioRows[0],{...ratioRows[1],amount_unit:"at%"},ratioRows[2]])),"incompatible concentration units cannot be mixed");
+expect(Boolean(ratioProblem(calculatedRatio,[{...ratioRows[0],amount_comparator:"balance"},...ratioRows.slice(1)])),"balance values are not invented for ratio calculations");
+expect(Boolean(ratioProblem(calculatedRatio,[{...ratioRows[0],amounts:[{preferred_order:0,amount_comparator:null,evidence_spans:[]},{preferred_order:1,amount_comparator:"range",amount_lower_value:2,amount_upper_value:4,amount_unit:"wt%",evidence_spans:[]}]},...ratioRows.slice(1)])),"preferred-only concentrations cannot substitute for missing Base values");
+expect(ratioIntervalText({lower:1,upper:2,lowerEndpoint:"open",upperEndpoint:"closed"})===">1 to ≤2","calculated open endpoints remain explicit");
+expect(ratioIntervals(calculatedRatio,[{...ratioRows[0],amount_lower_value:"4",amount_upper_value:"4"},...ratioRows.slice(1)])[1].lower===1.5,"in-progress numeric concentration drafts remain calculable before save normalization");
+expect(!hasCompositionDraftErrors(validateCompositionDraft({constituents:ratioRows,constraints:[calculatedRatio]},false)),"ratio draft validation accepts description ratios");
+expect(hasCompositionDraftErrors(validateCompositionDraft({constituents:ratioRows,constraints:[calculatedRatio]})),"claims draft validation rejects description-only ratio mode");
 
 console.log("review constraint draft tests passed");

@@ -3,6 +3,7 @@ from __future__ import annotations
 from copy import deepcopy
 import math
 from typing import Any, Iterator
+from .description_ratio import validate_ratio
 from .description_schema import inherited_references, validate_description_extensions
 
 
@@ -121,7 +122,7 @@ def _validate_constituent(value: Any, path: str) -> None:
 def _validate_constraint(value: Any, names: set[str], path: str, *, require_evidence: bool = True) -> None:
     constraint = _require_dict(value, path.rstrip("."))
     _require_string(constraint.get("constraint_id"), f"{path}constraint_id")
-    if constraint.get("mode") not in CONSTRAINT_MODES:
+    if constraint.get("mode") not in CONSTRAINT_MODES and not (not require_evidence and constraint.get("mode") == "ratio"):
         raise ValueError(f"{path}mode is unsupported")
     refs = _require_list(constraint.get("member_refs"), f"{path}member_refs")
     if not refs or any(not isinstance(ref, str) or not ref.strip() for ref in refs):
@@ -131,6 +132,9 @@ def _validate_constraint(value: Any, names: set[str], path: str, *, require_evid
     unknown = sorted(set(refs).difference(names))
     if unknown:
         raise ValueError(f"{path}member_refs contains unknown constituents: {unknown}")
+    if constraint.get("mode") == "ratio":
+        validate_ratio(constraint)
+        return
     if constraint.get("constituent_status") not in CONSTITUENT_STATUSES:
         raise ValueError(f"{path}constituent_status is unsupported")
     selection = _require_dict(constraint.get("selection"), f"{path}selection")

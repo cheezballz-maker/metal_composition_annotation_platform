@@ -1,5 +1,7 @@
 import { useReviewTranslation } from "./locale";
 import React from "react";
+import { AddRestrictionButtons, RatioSummary } from "./DescriptionRatio";
+import { inheritedInformation } from "./descriptionInheritance";
 import { restrictionSelectionLabel } from "./constraintDraft";
 import { alphabeticalConstituents } from "./descriptionNavigation";
 import { ChevronRight, Plus } from "lucide-react";
@@ -52,7 +54,7 @@ export function UnrepresentedRestrictions({values,inherited=false}:{values:unkno
   </section>;
 }
 
-export function CompositionDataView({ data, description = false, bases = [], onSelectBase, onEditConstituent, onDeleteConstituent, onSectionAction, constituentEditor, restrictionEditor, editable = true }: { data: ReviewCompositionData; description?: boolean; bases?: ReviewComposition[]; onSelectBase?: (id: string) => void; onEditConstituent?: (index: number) => void; onDeleteConstituent?: (index: number) => void; onSectionAction?: (kind: "restriction", index: number | undefined, action: "edit" | "delete") => void; restrictionEditor?: {index:number; content:React.ReactNode}; editable?: boolean; constituentEditor?: {index:number; row?:ReviewConstituent; content:React.ReactNode} }) {
+export function CompositionDataView({ data, description = false, bases = [], onSelectBase, onEditConstituent, onDeleteConstituent, onSectionAction, constituentEditor, restrictionEditor, editable = true }: { data: ReviewCompositionData; description?: boolean; bases?: ReviewComposition[]; onSelectBase?: (id: string) => void; onEditConstituent?: (index: number) => void; onDeleteConstituent?: (index: number) => void; onSectionAction?: (kind: "restriction", index: number | undefined, action: "edit" | "delete", ratio?:boolean) => void; restrictionEditor?: {index:number; content:React.ReactNode}; editable?: boolean; constituentEditor?: {index:number; row?:ReviewConstituent; content:React.ReactNode} }) {
   const t = useReviewTranslation();
   const { content } = React.useContext(EvidenceContext);
   const scope = React.useMemo(() => resolveEvidence({ evidence: data.evidence, evidence_spans: data.evidence_spans }, content), [data, content]);
@@ -60,6 +62,7 @@ export function CompositionDataView({ data, description = false, bases = [], onS
   const displayRows = constituentEditor?.index === rows.length && constituentEditor.row ? [...rows,constituentEditor.row] : rows;
   const relations = data.unrepresented_relations || [];
   const restrictions = data.constraints || [];
+  const ratioConstituents = [...inheritedInformation(data,bases).constituents,...rows];
   const showStatus = rows.some((row) => row.constituent_status !== "included");
   const relationshipSection = (relations.length > 0 && <section className="review-relations" aria-label={t("Unrepresented relations")}>
     <header><strong>{t("Unrepresented relations")}</strong><small>{relations.length}</small></header>
@@ -90,12 +93,12 @@ export function CompositionDataView({ data, description = false, bases = [], onS
       </table></div> : <p className="review-data-empty">{t("No constituents recorded.")}</p>}
     </details>}
     {description ? <section className="review-structured-section review-restrictions" aria-label="Constituent restrictions">
-      <header><strong>Constituent restrictions</strong>{editable && <button type="button" onClick={() => onSectionAction?.("restriction",undefined,"edit")}><Plus size={13}/> Add restriction</button>}</header>
-      {!data.constraints?.length && <p className="review-section-empty">No constituent restrictions.</p>}
+      <header><strong>Constituent restrictions</strong>{editable && <AddRestrictionButtons onAdd={ratio=>onSectionAction?.("restriction",undefined,"edit",ratio)}/>} </header>
+      {!data.constraints?.length && !restrictionEditor && <p className="review-section-empty">No constituent restrictions.</p>}
       {restrictions.map((c, i) => restrictionEditor?.index === i ? <div className="review-inline-slot" key={i}>{restrictionEditor.content}</div> : <DescriptionEditableItem key={i} className="review-description-restriction" label={`Edit constituent restriction ${i + 1}`} onEdit={editable ? () => onSectionAction?.("restriction",i,"edit") : undefined} onDelete={editable ? () => onSectionAction?.("restriction",i,"delete") : undefined} deleteLabel={`Delete constituent restriction ${i + 1}`}>
-        <strong>Constituents: {(c.member_refs || []).join(", ")}</strong>
+        {c.mode === "ratio" ? <RatioSummary row={c} constituents={ratioConstituents}/> : <><strong>Constituents: {(c.member_refs || []).join(", ")}</strong>
         {amount(c) !== "—" && <span>Combined constituent concentration: {amount(c)}</span>}
-        {restrictionSelectionLabel(c) && <span>Number included: {restrictionSelectionLabel(c)}</span>}
+        {restrictionSelectionLabel(c) && <span>Number included: {restrictionSelectionLabel(c)}</span>}</>}
       </DescriptionEditableItem>)}
       {restrictionEditor && restrictionEditor.index === restrictions.length && <div className="review-inline-slot">{restrictionEditor.content}</div>}
       <UnrepresentedRestrictions values={relations}/>

@@ -14,6 +14,8 @@ import { filterOccurrences, fitDescriptionPanels, indexOccurrences, resizeDescri
 import { changeInstanceSpan, instanceSpans, sameSpan } from "./descriptionEvidence";
 import { prepareDescriptionConstituent } from "./descriptionDraft";
 import { DescriptionReviewControls, FlagReasonPopover } from "./DescriptionReviewControls";
+import { AddRestrictionButtons, DescriptionRatioEditor } from "./DescriptionRatio";
+import { prepareRatio } from "./ratios";
 import { DescriptionEditableItem } from "./DescriptionEditableItem";
 import { InheritanceSelector, InheritedInformation } from "./DescriptionInheritancePanel";
 import { inheritedInformation, inheritanceBase, instanceNumber, prepareAddOnlyInheritance, setInheritanceBase } from "./descriptionInheritance";
@@ -58,6 +60,7 @@ function normalizeCompositionNumericDraft(data: ReviewCompositionData, scope?: D
   });
   (next.constraints || []).forEach((item, index) => {
     if (scope && (scope.kind !== "restriction" || (scope.index != null && scope.index !== index))) return;
+    if (description && item.mode === "ratio") {next.constraints![index]=prepareRatio(item);return;}
     normalizeAmountDraft(item, `Constraint ${index + 1}`);
     const selection = item.selection || {};
     const min = normalizeCountDraft(selection.min, `Constraint ${index + 1} minimum`);
@@ -475,12 +478,12 @@ function DescriptionInstance({ composition, editable: documentEditable, inheritO
     finally {setBusy(false);}
   };
   const remove = (next:ReviewCompositionData) => {setMutationError("");void save(next).catch(error=>setMutationError(error instanceof Error ? error.message : "Could not save this change."));};
-  const sectionAction = (kind:"restriction", index:number|undefined, action:"edit"|"delete") => {
+  const sectionAction = (kind:"restriction", index:number|undefined, action:"edit"|"delete", ratio=false) => {
     const next = clone(composition.data);
     if (action === "delete") {next.constraints=(next.constraints || []).filter((_,i)=>i!==index);remove(next);return;}
     if (index == null) {
       const rows = next.constraints || [];
-      next.constraints=[...rows,{constraint_id:nextConstraintId([...rows,...inheritedInformation(next,inheritOptions).constraints]),mode:"sum",member_refs:[],constituent_status:"included",selection:{min:null,max:null},amount_comparator:null}];index=rows.length;
+      next.constraints=[...rows,{constraint_id:nextConstraintId([...rows,...inheritedInformation(next,inheritOptions).constraints]),...(ratio ? {mode:"ratio",member_refs:[],ratio_values:[]} : {mode:"sum",member_refs:[],constituent_status:"included",selection:{min:null,max:null},amount_comparator:null})}];index=rows.length;
     }
     open({kind,index},next);
   };
@@ -496,7 +499,7 @@ function DescriptionInstance({ composition, editable: documentEditable, inheritO
     <InheritedInformation data={editor?.scope.field === "inherits_from" && bridge.data ? bridge.data : composition.data} records={inheritOptions}/>
     {mutationError && <p className="review-inline-error" role="alert">{mutationError}</p>}
     {deletion.confirmation}
-    <CompositionDataView data={composition.data} description editable={viewEditable} constituentEditor={editor?.scope.kind === "constituent" && editor.scope.index != null ? {index:editor.scope.index,row:editor.initial.constituents?.[editor.scope.index],content:editorView} : undefined} restrictionEditor={editor?.scope.kind === "restriction" && editor.scope.index != null ? {index:editor.scope.index,content:editorView} : undefined} onEditConstituent={index=>{const next=clone(composition.data);if(index === (next.constituents || []).length) next.constituents=[...(next.constituents || []),{constituent_name:"",constituent_status:"included"}];open({kind:"constituent",index},next);}} onDeleteConstituent={deleteConstituent} onSectionAction={sectionAction}/>
+    <CompositionDataView data={composition.data} description bases={inheritOptions} editable={viewEditable} constituentEditor={editor?.scope.kind === "constituent" && editor.scope.index != null ? {index:editor.scope.index,row:editor.initial.constituents?.[editor.scope.index],content:editorView} : undefined} restrictionEditor={editor?.scope.kind === "restriction" && editor.scope.index != null ? {index:editor.scope.index,content:editorView} : undefined} onEditConstituent={index=>{const next=clone(composition.data);if(index === (next.constituents || []).length) next.constituents=[...(next.constituents || []),{constituent_name:"",constituent_status:"included"}];open({kind:"constituent",index},next);}} onDeleteConstituent={deleteConstituent} onSectionAction={sectionAction}/>
     <DescriptionEvidenceSection data={composition.data} editing={false} inlineEditor={editor?.scope.kind === "evidence" ? {span:bridge.selected || undefined,content:editorView} : undefined}/>
   </section></DescriptionSpanContext.Provider>;
 }
@@ -646,6 +649,7 @@ function CompositionEditor({ showClaimNumber = true, inlineConstituent = false, 
     {showClaimNumber && <details><summary>{t("Unrepresented relations")}</summary><div className="review-composition-data"><JsonNode label={t("Relations in source")} value={data.unrepresented_relations}/></div><textarea value={relationsText} onChange={(event) => { setRelationsText(event.target.value); setRelationsError(""); onDraftChange(true); }} aria-label={t("Unrepresented relations JSON")}/>{relationsError && <span className="review-inline-error">{relationsError}</span>}</details>}
     {showClaimNumber && <label>{t("Reason")}{requiredReason && <em>{t("required")}</em>}<textarea value={reason} onChange={(event) => { setReason(event.target.value); onDraftChange(true); }} placeholder={t("Explain the change")}/></label>}
     {showClaimNumber && <details><summary>{t("Before / after preview")}</summary><div className="review-composition-data"><JsonNode label={t("Before")} value={initial}/><JsonNode label={t("After")} value={data}/></div></details>}
+    {showValidation && !showSection("restriction") && Object.values(draftErrors.constraints).map((errors,index)=>errors.ratio ? <span key={index} className="review-inline-error" role="alert">{errors.ratio}</span> : null)}
     {submitError && <span className="review-inline-error" role="alert">{t(submitError)}</span>}
     {deletion.confirmation}
     <div className="review-action-row"><button className="review-primary" type="submit" disabled={saving || (requiredReason && !reason.trim()) || (showValidation && draftInvalid) || (evidenceEditor && (!spanBridge?.candidate || sameSpan(spanBridge.candidate,spanBridge.selected)))}><Save size={14}/>{saving ? "Saving…" : submitLabel}</button>{(canDeleteConstituent || (evidenceEditor && spanBridge?.selected)) && <button type="button" className="review-delete-button" disabled={saving} onClick={deleteSection}>{evidenceEditor ? "Delete span" : "Delete constituent"}</button>}<button type="button" disabled={saving} onClick={onCancel} title="Esc">{t("Cancel")}</button></div>
@@ -699,9 +703,12 @@ function ConstraintEditor({ inline = false, description = false, unrepresented =
   const update = (index: number, patch: Partial<ReviewConstraint>) => onChange(rows.map((row, rowIndex) => rowIndex === index ? { ...row, ...patch } : row));
   const names = selectableConstituentNames(constituents);
   if (description) names.sort((a,b) => a.localeCompare(b,"en",{sensitivity:"base",numeric:true}));
-  return <section className={inline ? "review-inline-restriction-fields" : `review-structured-section${description ? " review-restrictions" : ""}`} >{!inline && <header><strong>{description ? "Constituent restrictions" : t("Constraints")}</strong>{onlyIndex == null && <button type="button" onClick={() => onChange([...rows, { constraint_id: nextConstraintId([...rows, ...reservedIds.map(constraint_id => ({constraint_id}))]), mode: "sum", member_refs: [], constituent_status: "included", selection: { min: null, max: null }, amount_comparator: null, amount_unit: null, amount_lower_value: null, amount_upper_value: null, amount_lower_endpoint_type: null, amount_upper_endpoint_type: null, ...(!description ? {evidence:""} : {}) }])}><Plus size={13}/> {description ? "Add restriction" : t("Add")}</button>}</header>}{rows.map((row, index) => {
+  const add=(ratio=false)=>onChange([...rows,{constraint_id:nextConstraintId([...rows,...reservedIds.map(constraint_id=>({constraint_id}))]),...(description && ratio ? {mode:"ratio",member_refs:[],ratio_values:[]} : {mode:"sum",member_refs:[],constituent_status:"included",selection:{min:null,max:null},amount_comparator:null,amount_unit:null,amount_lower_value:null,amount_upper_value:null,amount_lower_endpoint_type:null,amount_upper_endpoint_type:null,...(!description?{evidence:""}:{})})}]);
+  return <section className={inline ? "review-inline-restriction-fields" : `review-structured-section${description ? " review-restrictions" : ""}`} >{!inline && <header><strong>{description ? "Constituent restrictions" : t("Constraints")}</strong>{onlyIndex == null && (description ? <AddRestrictionButtons onAdd={add}/> : <button type="button" onClick={()=>add()}><Plus size={13}/>{t("Add")}</button>)}</header>}{rows.map((row, index) => {
     if (onlyIndex != null && onlyIndex !== index) return null;
     const rowErrors = errors[index] || {};
+    if(description && row.mode === "ratio")return <div className="review-constraint-row" key={index}><DescriptionRatioEditor row={row} constituents={constituents} onChange={next=>onChange(rows.map((current,i)=>i===index?next:current))}/>{rowErrors.ratio && <span className="review-inline-error" role="alert">{rowErrors.ratio}</span>}<button type="button" className="review-constraint-remove" onClick={()=>onChange(rows.filter((_,i)=>i!==index))}>Delete restriction</button></div>;
+
     const refs = row.member_refs || [];
     const invalidRefs = refs.map((ref, refIndex) => ({ ref, refIndex })).filter(({ ref }) => !names.includes(ref));
     return <div className="review-constraint-row" key={index}>

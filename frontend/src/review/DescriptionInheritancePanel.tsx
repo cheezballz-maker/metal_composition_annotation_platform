@@ -1,5 +1,6 @@
 import React from "react";
 import { restrictionSelectionLabel } from "./constraintDraft";
+import { RatioSummary } from "./DescriptionRatio";
 import { alphabeticalConstituents } from "./descriptionNavigation";
 import { UnrepresentedRestrictions, formatCompositionAmount } from "./CompositionDataView";
 import { preferredRangeLabel } from "./descriptionDraft";
@@ -35,7 +36,7 @@ export function InheritedInformation({ data, records }: { data: ReviewCompositio
       <span><strong>{row.constituent_name}</strong><small>{row.constituent_status || "included"}</small></span>
       <span>{row.amounts ? row.amounts.map((amount, i) => <span className="review-inherited-amount" key={i}><small>{preferredRangeLabel(amount)}</small> {formatCompositionAmount(amount)}</span>) : formatCompositionAmount(row)}</span>
     </div>)}</div>}
-    {(inherited.constraints.length > 0 || inherited.otherRules.length > 0) && <div className="review-inherited-restrictions" aria-label="Inherited constituent restrictions"><strong>Constituent restrictions</strong>{inherited.constraints.map(row => <div className="review-inherited-restriction" key={row.constraint_id}><p>Constituents: {row.member_refs?.join(", ")}</p>{formatCompositionAmount(row) !== "—" && <p>Combined constituent concentration: {formatCompositionAmount(row)}</p>}{restrictionSelectionLabel(row) && <p>Number included: {restrictionSelectionLabel(row)}</p>}</div>)}
+    {(inherited.constraints.length > 0 || inherited.otherRules.length > 0) && <div className="review-inherited-restrictions" aria-label="Inherited constituent restrictions"><strong>Constituent restrictions</strong>{inherited.constraints.map(row => <div className="review-inherited-restriction" key={row.constraint_id}>{row.mode === "ratio" ? <RatioSummary row={row} constituents={[...inherited.constituents,...(data.constituents || [])]}/> : <><p>Constituents: {row.member_refs?.join(", ")}</p>{formatCompositionAmount(row) !== "—" && <p>Combined constituent concentration: {formatCompositionAmount(row)}</p>}{restrictionSelectionLabel(row) && <p>Number included: {restrictionSelectionLabel(row)}</p>}</>}</div>)}
       {inherited.otherRules.length > 0 && <UnrepresentedRestrictions values={inherited.otherRules} inherited/>}
     </div>}
     {!inherited.constituents.length && !inherited.constraints.length && !inherited.otherRules.length && <p>No inherited constituents or restrictions.</p>}

@@ -43,7 +43,8 @@ export type ReviewConstituent = {
 
 export type ReviewConstraint = {
   constraint_id?: string;
-  mode?: "sum" | "any_of" | string;
+  mode?: "sum" | "any_of" | "ratio" | string;
+  ratio_values?: Array<number | string | [number | string, number | string]>;
   member_refs?: string[];
   constituent_status?: string | null;
   selection?: { min?: number | string | null; max?: number | string | null };

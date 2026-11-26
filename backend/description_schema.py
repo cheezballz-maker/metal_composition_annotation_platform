@@ -1,5 +1,6 @@
 """Optional description extensions. Existing scalar annotations remain valid."""
 import math
+from .description_ratio import calculate_ratio, effective_constituents
 from copy import deepcopy
 from decimal import Decimal
 
@@ -313,3 +314,8 @@ def validate_description_extensions(compositions: list[dict], content: str, amou
     for comp in compositions:
         if "inherits_from" in comp or any(link.get("kind") == "inherits_from" and link.get("mode") == "add_only" for link in comp.get("unrepresented_relations", [])):
             _validate_additive_totals(comp, compositions)
+
+    for comp in compositions:
+        for rule in comp.get("constraints", []):
+            if rule.get("mode") == "ratio" and "ratio_values" not in rule:
+                calculate_ratio(rule, effective_constituents(comp, compositions))

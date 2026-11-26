@@ -1,3 +1,4 @@
+import { ratioProblem } from "./ratios";
 import { normalizeCountDraft } from "./numericDraft";
 import type { ReviewCompositionData, ReviewConstraint } from "./types";
 
@@ -6,6 +7,7 @@ export type ConstraintDraftFieldErrors = {
   member_refs?: string;
   evidence?: string;
   selection?: string;
+  ratio?: string;
 };
 
 export type CompositionDraftErrors = {
@@ -99,6 +101,13 @@ export function validateCompositionDraft(data: ReviewCompositionData, requireCon
     else {
       const unknown = refs.filter((ref) => !nameSet.has(ref));
       if (unknown.length) rowErrors.member_refs = `Unknown constituent${unknown.length === 1 ? "" : "s"}: ${unknown.join(", ")}`;
+    }
+
+    if (row.mode === "ratio") {
+      const problem=requireConstraintEvidence ? "Ratios are supported only for Patent Descriptions." : ratioProblem(row,constituents);
+      if(problem)rowErrors.ratio=problem;
+      if(Object.keys(rowErrors).length)errors.constraints[index]=rowErrors;
+      return;
     }
 
     if (requireConstraintEvidence && !(row.evidence || "").trim()) rowErrors.evidence = "Constraint evidence is required.";

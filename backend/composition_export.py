@@ -69,7 +69,8 @@ def canonical_composition(composition: dict) -> str:
     for constraint in composition.get("constraints", []):
         item = {key: value for key, value in constraint.items()
                 if key not in {"constraint_id", "evidence", "evidence_spans", "member_refs"}}
-        item["member_refs"] = sorted((_normalize(v) for v in constraint.get("member_refs", [])), key=_json)
+        refs = [_normalize(v) for v in constraint.get("member_refs", [])]
+        item["member_refs"] = refs if constraint.get("mode") == "ratio" else sorted(refs, key=_json)
         constraints.append(_normalize(item))
     semantic["constraints"] = sorted(constraints, key=_json)
     relations = []
