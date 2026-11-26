@@ -4,7 +4,7 @@ import type { RawEvidence, ReviewCompositionData } from "./types";
 import { changeInstanceSpan, instanceSpans, sameSpan } from "./descriptionEvidence";
 import { readableFragment } from "./descriptionNavigation";
 import { EvidenceContext } from "./EvidenceFocus";
-import { ReviewContextMenu } from "./ReviewContextMenu";
+import { DescriptionEditableItem } from "./DescriptionEditableItem";
 
 export type DescriptionSpanBridge = {
   content: string; data: ReviewCompositionData | null; editable: boolean; editing: boolean; requireEvidence: boolean;
@@ -18,11 +18,10 @@ export type DescriptionSpanBridge = {
 };
 export const DescriptionSpanContext = React.createContext<DescriptionSpanBridge | null>(null);
 
-export function DescriptionEvidenceSection({ data, editing, change, onlySpan, simpleCapture = false }: { data: ReviewCompositionData; editing: boolean; change?: (data: ReviewCompositionData) => void; onlySpan?: RawEvidence; simpleCapture?: boolean }) {
+export function DescriptionEvidenceSection({ data, editing, change, onlySpan, simpleCapture = false, inlineEditor }:  { data: ReviewCompositionData; editing: boolean; change?: (data: ReviewCompositionData) => void; onlySpan?: RawEvidence; simpleCapture?: boolean; inlineEditor?:{span?:RawEvidence;content:React.ReactNode} }) {
   const bridge = React.useContext(DescriptionSpanContext)!;
   const { show } = React.useContext(EvidenceContext);
   const [error, setError] = React.useState("");
-  const [expanded, setExpanded] = React.useState<string | null>(null);
   const section = React.useRef<HTMLElement>(null);
   const spans = instanceSpans(data).filter(span => !onlySpan || sameSpan(span, onlySpan) || sameSpan(span, bridge.selected));
   const selected = spans.find(s => sameSpan(s, bridge.selected)) || null;
@@ -62,16 +61,18 @@ export function DescriptionEvidenceSection({ data, editing, change, onlySpan, si
     change({...data, evidence_spans: next}); bridge.setSelected(bridge.candidate); bridge.setCandidate(null); bridge.setMode("idle"); window.getSelection()?.removeAllRanges();
   };
   if (simpleCapture) return <section ref={section} className="review-instance-section review-instance-evidence" aria-label="Evidence span editor">
-    <header><h3>Evidence</h3></header>
     <section className="review-evidence-preview-section review-evidence-original" aria-label="Original evidence"><h4>Original evidence</h4><p className="review-evidence-edit-preview">{originalSpan ? readableFragment(originalSpan.evidence_text) : "No original evidence."}</p></section>
     <section className="review-evidence-preview-section review-evidence-new" aria-label="New evidence" aria-live="polite" aria-atomic="true"><div className="review-evidence-preview-heading"><h4>New evidence</h4><button type="button" className="review-evidence-undo" title="Undo new evidence selection" aria-label="Undo new evidence selection" disabled={!bridge.candidate} onClick={undoCandidate}><Undo2 size={14}/></button></div><p className={`review-evidence-edit-preview${bridge.candidate ? "" : " review-evidence-placeholder"}`}>{bridge.candidate ? readableFragment(bridge.candidate.evidence_text) : originalSpan ? "Select replacement text in Source." : "Select supporting text in Source."}</p></section>
   </section>;
   return <section ref={section} className="review-instance-section review-instance-evidence" aria-label="Evidence spans">
     <header><h3>Evidence</h3>{bridge.editable && !onlySpan && <button type="button" onClick={() => editing ? begin("add") : bridge.requestEdit()}><Plus size={14}/> Add span</button>}</header>
     {!spans.length && <p className="review-section-empty">No evidence spans attached.</p>}
-    <div className="review-instance-spans">{spans.map((span, i) => { const key = `${span.start}:${span.end}`; return <ReviewContextMenu key={key} className="review-instance-span" label={`Actions for evidence span ${i + 1}`} actions={bridge.editable ? [{id:"edit",label:"Edit"},{id:"delete",label:"Delete",danger:true}] : []} onAction={action => { if (action === "edit") { bridge.setSelected(span); if (editing) begin("replace"); else bridge.requestEdit(span); } else if (editing) modify(null, span); else bridge.deleteSpan(span); }}>
-      <button type="button" className={sameSpan(span, selected) ? "selected" : ""} aria-pressed={sameSpan(span, selected)} aria-expanded={expanded === key} onClick={() => { setExpanded(value => value === key ? null : key); bridge.setSelected(span); bridge.setMode("idle"); bridge.setCandidate(null); show(span, `Span ${i + 1}`); }}><strong>Span {i + 1}</strong><span>{readableFragment(span.evidence_text)}</span>{expanded === key && <small>Source characters {span.start}–{span.end}</small>}</button>
-    </ReviewContextMenu>; })}</div>
+    <div className="review-instance-spans">{spans.map((span, i) => { const key = `${span.start}:${span.end}`;
+      if (inlineEditor?.span && sameSpan(span,inlineEditor.span)) return <div className="review-inline-slot" key={key}>{inlineEditor.content}</div>;
+      return <DescriptionEditableItem key={key} className="review-instance-span" label={`Edit evidence span ${i + 1}`} onEdit={bridge.editable ? () => {show(span,`Span ${i + 1}`);if(editing) {bridge.setSelected(span);begin("replace");} else bridge.requestEdit(span);} : undefined} onDelete={bridge.editable ? () => editing ? modify(null,span) : bridge.deleteSpan(span) : undefined} deleteLabel={`Delete evidence span ${i + 1}`}>
+        <strong>Span {i + 1}</strong><span>{readableFragment(span.evidence_text)}</span>
+      </DescriptionEditableItem>;
+    })}{inlineEditor && !inlineEditor.span && <div className="review-inline-slot">{inlineEditor.content}</div>}</div>
     {editing && selected && <div className="review-section-actions"><button type="button" onClick={() => begin("replace")}>Redraw span</button><button type="button" className="review-danger" onClick={() => modify(null)}><Trash2 size={13}/> Delete span</button></div>}
     {editing && bridge.mode !== "idle" && <div className="review-span-capture"><p>{bridge.candidate ? readableFragment(bridge.candidate.evidence_text) : `Highlight ${bridge.mode === "replace" ? "replacement" : "supporting"} text in Source.`}</p><div className="review-section-actions"><button type="button" className="review-primary" disabled={!bridge.candidate} onMouseDown={event => event.preventDefault()} onClick={attach}>{bridge.mode === "replace" ? "Apply new bounds" : "Attach selected span"}</button><button type="button" onClick={() => { bridge.setMode("idle"); bridge.setCandidate(null); window.getSelection()?.removeAllRanges(); }}>Cancel selection</button></div></div>}
     {error && <p className="review-inline-error" role="alert">{error}</p>}

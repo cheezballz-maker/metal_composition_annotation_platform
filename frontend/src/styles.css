@@ -259,8 +259,6 @@ button:disabled { opacity: .5; cursor: not-allowed; }
 .review-description .review-instance-facts dd { margin: 0; font-size: 13px; text-transform: capitalize; }
 .review-description .review-section-empty { margin: 0; color: #64748b; font-size: 13px; line-height: 20px; }
 .review-description .review-instance-spans { display: grid; gap: 8px; }
-.review-description .review-instance-spans > button { display: grid; gap: 5px; width: 100%; padding: 9px 10px; text-align: left; align-items: start; justify-content: stretch; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; }
-.review-description .review-instance-spans > button.selected { border-color: #0f766e; background: #e8f5f1; }
 .review-description .review-instance-spans strong { color: #475569; font-size: 12px; }
 .review-description .review-instance-spans span { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; color: #334155; font-size: 13px; line-height: 20px; overflow-wrap: anywhere; }
 .review-description .review-section-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; }
@@ -323,8 +321,6 @@ button:disabled { opacity: .5; cursor: not-allowed; }
 .review-description .review-add-composition { display: inline-flex; align-items: center; gap: 4px; flex: 0 0 auto; padding: 5px 8px; font-size: 12px; }
 .review-description .review-occurrence-shell { position: relative; border-bottom: 1px solid #e2e8f0; }
 .review-description .review-occurrence-row { padding-right: 36px; border-bottom: 0; }
-.review-description .review-occurrence-menu { position: absolute; top: 6px; right: 6px; width: 28px; height: 30px; }
-.review-description .review-occurrence-menu > .review-context-trigger { top: 0; right: 0; }
 .review-description .review-occurrence-shell.deleted { opacity: .65; }
 .review-description .review-occurrence-shell.deleted strong { text-decoration: line-through; }
 .review-description .review-composition-navigation > footer { display: flex; justify-content: flex-end; min-height: 0; padding: 6px 10px; }
@@ -332,25 +328,11 @@ button:disabled { opacity: .5; cursor: not-allowed; }
 .review-description .review-description-constituents > header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
 .review-description-constituent-list { display: grid; gap: 7px; }
 .review-description-constituent { border: 1px solid #e2e8f0; border-radius: 7px; background: #fff; }
-.review-description-constituent-toggle { display: grid; width: 100%; gap: 5px; padding: 10px 40px 10px 11px; border: 0; background: transparent; text-align: left; }
-.review-description-constituent-toggle > span:first-child { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; }
-.review-description-constituent-toggle small { color: #64748b; font-size: 11px; }
 .review-description-constituent-values { color: #334155; font-size: 12px; line-height: 18px; }
-.review-description-constituent-details { display: grid; gap: 6px; padding: 0 11px 10px; }
-.review-description-constituent-details > div { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 10px; padding-top: 7px; border-top: 1px solid #f1f5f9; font-size: 12px; }
-.review-description-constituent-details > div > strong { color: #64748b; text-transform: capitalize; }
-.review-description-constituent-details small { color: #64748b; overflow-wrap: anywhere; }
 .review-description .review-instance-span { padding-right: 34px; }
-.review-description .review-instance-span > .review-context-trigger { top: 7px; right: 6px; }
-.review-description .review-instance-spans > .review-instance-span > button:first-child { padding-right: 8px; }
-.review-description .review-instance-spans > .review-instance-span > button > small { color: #64748b; font-size: 11px; }
 .review-description .review-document-toolbar > .review-context-target { width: 34px; height: 34px; }
 .review-description .review-document-toolbar > .review-context-target > .review-context-trigger { inset: 0; width: 34px; height: 34px; opacity: 1; pointer-events: auto; border-color: #cbd5e1; background: #fff; }
 .review-description .review-composition-navigation > .review-composition-nav-heading { display: flex; }
-.review-description .review-instance-spans > .review-instance-span > button:first-child { display: grid; gap: 5px; width: 100%; padding: 9px 36px 9px 10px; text-align: left; align-items: start; justify-content: stretch; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; }
-.review-description .review-instance-spans > .review-instance-span > button:first-child.selected { border-color: #0f766e; background: #e8f5f1; }
-.review-description .review-instance-spans > .review-instance-span > button:first-child > strong { color: #475569; font-size: 12px; }
-.review-description .review-instance-spans > .review-instance-span > button:first-child > span { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; color: #334155; font-size: 13px; line-height: 20px; overflow-wrap: anywhere; }
 
 /* Source evidence uses three states, independent of the selected record. */
 .review-description .review-source-view .review-source-highlight { text-decoration: none !important; border: 0 !important; box-shadow: none !important; color: inherit; }
@@ -372,21 +354,15 @@ button:disabled { opacity: .5; cursor: not-allowed; }
 .review-description .review-occurrence-shell.deleted { opacity: 1; margin: 3px; border: 1px dashed #dc5d5d; border-radius: 4px; }
 .review-description .review-occurrence-shell.deleted strong { color: #94a3b8; text-decoration: none; }
 .review-description .review-occurrence-shell.deleted .review-occurrence-row { background: #fffafa; }
-.review-description .review-occurrence-shell > .review-context-trigger { top: 7px; right: 6px; opacity: .65; pointer-events: auto; }
 .review-description .review-description-constituent-list { gap: 0; border: 1px solid #e2e8f0; border-radius: 4px; overflow: visible; }
 .review-description .review-description-constituent-list > .review-description-constituent { display: block; padding: 0; margin: 0; border: 0; border-bottom: 1px solid #e2e8f0; border-radius: 0; background: transparent; }
 .review-description .review-description-constituent-list > .review-description-constituent:last-child { border-bottom: 0; }
-.review-description .review-description-constituent-toggle { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 10px; padding: 6px 34px 6px 8px; min-height: 30px; border-radius: 0; }
-.review-description .review-description-constituent-toggle > span:first-child { gap: 6px; }
 .review-description .review-description-constituent-values { font-size: 12px; }
-.review-description .review-description-constituent-details { padding: 0 8px 7px; }
-.review-description .review-description-constituent-list .review-context-trigger { top: 1px; right: 3px; }
 .review-description .review-description-instance .review-instance-section,
 .review-description .review-description-instance .review-data-section,
 .review-description .review-description-instance .review-relations,
 .review-description .review-description-instance .review-restrictions { margin: 0 0 12px; padding: 10px; border: 1px solid #e2e8f0; border-radius: 5px; }
 .review-description .review-instance-details { background: #f8fafc; }
-.review-description .review-description-instance .review-instance-details-actions:has(> .review-context-trigger) { cursor: pointer; }
 .review-description .review-relations,
 .review-description .review-section-relationship { background: #faf7ff; }
 .review-description .review-description-constituents,
@@ -499,8 +475,6 @@ button:disabled { opacity: .5; cursor: not-allowed; }
 .review-inherited-amount { display: block; }
 .review-inherited-restrictions { margin-top: 8px; font-size: 12px; }
 .review-inherited-restrictions p { margin: 5px 0 0; }
-.review-description .review-restriction-summary { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
-.review-description .review-restriction-summary small { color: #64748b; font-weight: 400; }
 .review-description .review-restriction-selection { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .review-description .review-restriction-amount { display: grid; gap: 7px; padding: 9px 0; border-top: 1px solid #e2e8f0; }
 .review-description .review-restriction-amount > strong { font-size: 12px; color: #475569; }
@@ -530,3 +504,42 @@ button:disabled { opacity: .5; cursor: not-allowed; }
 .review-description .review-restriction-counts legend { margin-bottom:6px; font-size:12px; font-weight:600; }
 .review-description .review-restriction-counts legend small { color:#64748b; font-weight:400; }
 .review-description .review-inherited-restriction + .review-inherited-restriction { margin-top:10px; }
+
+/* Patent Descriptions: direct editing, consistent content insets, inline forms. */
+.review-description .review-direct-item { position:relative; min-width:0; }
+.review-description .review-direct-content { display:grid; gap:5px; width:100%; min-width:0; padding:9px 30px 9px 10px; margin:0; border:0; border-radius:4px; background:transparent; color:inherit; text-align:left; font:inherit; line-height:1.5; }
+.review-description button.review-direct-content { cursor:pointer; }
+.review-description button.review-direct-content:hover { background:rgba(148,163,184,.09); }
+.review-description .review-hover-delete { position:absolute; right:4px; top:5px; display:inline-grid; place-items:center; width:25px; min-height:25px; padding:2px; border:0; background:transparent; color:#b91c1c; opacity:0; pointer-events:none; }
+.review-description .review-direct-item:hover > .review-hover-delete,
+.review-description .review-direct-item:focus-within > .review-hover-delete { opacity:1; pointer-events:auto; }
+.review-description .review-hover-delete:hover:not(:disabled) { background:#fff0f1; }
+.review-description .review-hover-delete:disabled { cursor:not-allowed; }
+.review-description .review-description-constituent-list > .review-description-constituent { padding:0; }
+.review-description .review-description-constituent .review-direct-content { display:flex; flex-wrap:wrap; align-items:baseline; justify-content:space-between; gap:3px 10px; padding:7px 30px 7px 10px; }
+.review-description .review-constituent-identity { display:flex; align-items:baseline; gap:6px; }
+.review-description .review-constituent-identity small { color:#64748b; font-size:11px; }
+.review-description .review-description-restriction { display:block; padding:0; margin:8px 0 0; border:1px solid #e2e8f0; border-radius:4px; }
+.review-description .review-description-restriction .review-direct-content > span { display:block; overflow-wrap:anywhere; }
+.review-description .review-instance-span { padding:0; border:1px solid #e2e8f0; border-radius:4px; background:#f8fafc; }
+.review-description .review-instance-spans > .review-instance-span > .review-direct-content { display:grid; padding:9px 30px 9px 10px; border:0; background:transparent; border-radius:4px; }
+.review-description .review-instance-spans > .review-instance-span > .review-direct-content:hover { background:rgba(148,163,184,.09); }
+.review-description .review-instance-fields { display:grid; gap:2px; }
+.review-description .review-instance-field .review-direct-content { padding:7px 30px 7px 10px; }
+.review-description .review-instance-field small { color:#64748b; font-size:12px; }
+.review-description .review-instance-field span { overflow-wrap:anywhere; font-size:13px; }
+.review-description .review-inline-slot { min-width:0; }
+.review-description .review-inline-editor { margin:0; padding:10px; border:1px solid #9dc8bd; border-radius:4px; background:rgba(255,255,255,.7); }
+.review-description .review-inline-editor > .review-action-row { position:static; margin:8px 0 0; padding:8px 0 0; background:transparent; flex-wrap:wrap; }
+.review-description .review-inline-editor > .review-instance-section,
+.review-description .review-inline-editor > .review-structured-section { padding:0; margin:0; border:0; background:transparent; }
+.review-description .review-inline-restriction-fields { min-width:0; }
+.review-description .review-inline-restriction-fields .review-constraint-row { margin:0; padding:0; border:0; background:transparent; }
+.review-description .review-inline-editor .review-instance-evidence { padding:0; margin:0; border:0; background:transparent; }
+.review-description .review-occurrence-actions { position:absolute; top:50%; right:4px; transform:translateY(-50%); display:flex; gap:1px; opacity:0; pointer-events:none; }
+.review-description .review-occurrence-shell:hover .review-occurrence-actions,
+.review-description .review-occurrence-shell:focus-within .review-occurrence-actions,
+.review-description .review-occurrence-shell.deleted .review-occurrence-actions { opacity:1; pointer-events:auto; }
+.review-description .review-occurrence-actions button { position:static; opacity:1; pointer-events:auto; width:25px; min-height:25px; padding:3px; border:0; background:transparent; }
+.review-description .review-occurrence-row { padding-right:58px; }
+@media (hover:none) { .review-description .review-hover-delete, .review-description .review-occurrence-actions { opacity:1; pointer-events:auto; } }

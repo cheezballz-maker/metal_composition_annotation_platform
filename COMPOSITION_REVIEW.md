@@ -112,17 +112,13 @@ Base stays fixed. Deletion renumbers the preferred rows. Base cannot be relabele
 through a dropdown. New preferred rows reuse composition evidence, without
 additional source or formulation selectors.
 
-In full composition editing, the red X at the top-right of each local constituent
-card deletes that constituent from the draft, including its preferred amounts.
-Changes persist when the composition is saved; Cancel discards them. Constituents
-used by restrictions must be removed from those restrictions before deletion.
-Scoped constituent editing opens inline at that constituent's position, with
-other confirmed constituents visible. It retains its Delete constituent button
-beside Save changes. Local and inherited constituent lists display alphabetically
-without reordering stored annotations. A constituent being renamed stays in its
-current editor position until save; Cancel/Esc preserves the confirmed list.
-The Base amount no longer has a separate clear-values X; preferred
-amounts retain their individual delete controls.
+Click a local constituent to edit it inline at its alphabetical position; other
+confirmed constituents remain visible. Hover over an item to reveal its delete X.
+Constituents used by restrictions must be removed from those restrictions first.
+Preferred amounts retain their individual delete controls. Local and inherited
+lists display alphabetically without rewriting stored order. Cancel/Esc discards
+the open draft. Existing instances have no whole-record editor; the form used to
+create a new composition remains available through Add composition.
 
 **Save changes** in a section editor saves that section's changes to its containing
 composition; it does not finalize the document. Unrelated constituents and
@@ -134,7 +130,7 @@ retry because their persistence outcome is uncertain. Cancel/Esc discards drafts
 ### Add-only inheritance in Patent Descriptions
 
 An inherited instance is a separate composition with the same editable fields as
-an ordinary instance. In **Instance details → Edit → Inherits from**, select a
+an ordinary instance. Click **Instance details → Inherits from** and select a
 retained instance by its number and name. Its constituents, preferred amounts and
 restrictions appear in a gray **Inherited / Read-only** section with no interactive
 controls. Enter only the child's additions in its ordinary editable sections.
@@ -144,7 +140,8 @@ numbers. A parent with one child has a direct downward badge-to-badge arrow. A
 parent with multiple children has one shared left-side trunk and horizontal
 arrows into each child's badge. Nested branching families use separate gutter
 lanes; badges and names shift right to make room. The list displays only the index and composition
-name, with existing context actions. Search still filters by evidence fragments.
+name. Hover actions provide delete, recover and acceptance for pending seeds;
+there is no composition Edit/Delete menu. Search still filters by evidence fragments.
 A hidden parent does not get a substitute badge or dangling connector. Filtering
 does not renumber instances.
 
@@ -186,7 +183,8 @@ explicit `member_refs` (for example, Cu+Zn <= 25 wt% and Cu+Sn <= 12 wt%). A chi
 can add a separately identified restriction while preserving the inherited ones.
 The description UI calls this section **Constituent restrictions**, including
 inherited read-only rules. Its Add restriction button is available when empty and
-in full-composition editing. Description editors use one form with **Constituents**, **Combined constituent
+when creating a composition. Restriction edits stay inline among the confirmed
+rules. Description editors use one form with **Constituents**, **Combined constituent
 concentration** and optional **Number included** limits. There is no type selector;
 internal IDs remain automatic. Restriction `evidence` is removed from descriptions in both the
 platform and extraction profile. Current/baseline description rules omit the field;
@@ -195,7 +193,8 @@ and undo strips the retired field before restoring an older annotation. Claims
 retain their original editor and evidence requirement.
 The **Unrepresented restrictions** subsection displays stored
 `unrepresented_relations` as `kind: description`. It is read-only in normal,
-full-composition and inherited views, with no Add, Edit or Delete controls.
+inline editors and inherited views, with no Add, Edit or Delete controls. Empty
+Unrepresented restrictions subsections are hidden.
 Existing entries and their fields remain unchanged when other sections are saved.
 The extraction skill supplies these entries; this UI change does not create or
 reclassify them. Legacy entries without a description display their source wording.
@@ -209,17 +208,20 @@ show the same fields without the old mode labels. The redundant group-level Incl
 control is hidden; existing stored values are preserved. **Balance** remains available
 for restrictions describing a shared remainder.
 
-In the description UI, use **Add span** in the rightmost Evidence section, select
-text in Source, and click **Attach selected span** in the same Evidence section.
-Highlighting alone does not attach or save a span. Clicking an attached highlight
-opens its Evidence controls: delete the span, move its start/end by a visible
-character, or redraw it and apply new bounds. Shared references inside the same
-instance stay aligned; deletion of the only evidence for an amount or a required
-relationship is blocked until different supporting evidence is assigned.
-Changes remain an unsaved draft until **Save edit** or **Add composition** succeeds.
-Cancel and switching entries clear temporary selections. Description cards show amounts,
-restrictions and base links as readable fields; composition navigation stays in
-a separate vertical list. Action history remains stored and exported, and is hidden from this UI.
+In an existing instance, click an Evidence item to replace it inline, or **Add
+span** to open an inline capture editor. Original evidence and New evidence stay
+visible together; select text in Source, then **Save changes** or Cancel. The Undo
+icon beside New evidence reverses the latest selection within the open editor.
+Hover X deletes a span. Shared references remain aligned; required evidence cannot
+be removed without replacement. In a new-composition draft, use Add span, select
+text in Source and Attach selected span before saving the new composition.
+Clicking a source highlight only navigates to its composition, without editing.
+
+Instance details always show Name, Material type and Inherits from (None when
+unset). Each field opens its own inline editor. Inheritance previews remain
+read-only, and saving a field preserves unrelated data. Hover X clears an optional
+base link subject to validation; required names/material types cannot be cleared.
+Action history remains stored and exported, and is hidden from this UI.
 
 Description review uses three adjacent panes: raw source, an occurrence list, and
 the selected record's details. Search filters the list by evidence fragments
@@ -244,7 +246,13 @@ Finalized and flagged descriptions are read-only until the reviewer explicitly c
 
 Storage retains the original status values and event history for compatibility; deployment does not migrate reviews. New completion actions use the existing finalized state internally. Missing/unreadable source gaps still block completion and can be flagged through **Flag annotation**.
 
-Description edits and soft deletions do not require explanatory notes. Deleted instances are hidden until **Show deleted** is selected and can be restored without renumbering instances. Empty restriction/relationship sections are hidden when viewing and available as optional sections while editing. Evidence selection stays explicit: Add span starts capture, clicking an existing source highlight opens its editor, and Redraw span/Delete span act on the selected span. Changes persist only on saving the composition.
+Description edits and soft deletions do not require explanatory notes. Hover a
+composition row to delete it, then use Show deleted and Recover to restore it
+without renumbering. A base with linked children cannot be deleted until they are
+unlinked. Pending seeds retain an Accept hover action. Ctrl+Z undoes saved changes.
+Constituents, restrictions, evidence and instance fields edit inline with Save,
+Cancel and Esc, retaining the other confirmed sections. Inherited information is
+plain read-only text. Empty Unrepresented restrictions subsections are hidden.
 
 New composition editors publish their initial draft before evidence capture begins.
 **Add span → select text in Source → Attach selected span** works without editing

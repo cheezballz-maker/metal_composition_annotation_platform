@@ -1,7 +1,6 @@
 import React from "react";
-import { Plus, Search, X } from "lucide-react";
+import { Check, Plus, RotateCcw, Search, X } from "lucide-react";
 import type { OccurrenceEntry } from "./descriptionNavigation";
-import { ReviewContextMenu } from "./ReviewContextMenu";
 import { inheritanceBase, inheritanceRoutes, orderInheritanceFamilies } from "./descriptionInheritance";
 export function DescriptionNavigator({ entries, allEntries = entries, total, deleted, query, onQuery, activeId, adding, onSelect, onAdd, editable, decided, seeds, onCompositionAction, showDeleted, onShowDeleted }: {
   allEntries?: OccurrenceEntry[];
@@ -64,11 +63,13 @@ export function DescriptionNavigator({ entries, allEntries = entries, total, del
       const { composition, occurrence } = entry;
       const link = inheritanceBase(composition.data);
       const parent = link ? allEntries.find(item => Number(item.composition.data.node_no) === link) : undefined;
-      return <ReviewContextMenu key={composition.id} className={`review-occurrence-shell${composition.deleted ? " deleted" : ""}${link ? " review-derived-occurrence" : ""}`} label={`Actions for composition instance ${occurrence}`} actions={!editable ? [] : composition.deleted ? [{id:"restore",label:"Recover"}] : [{id:"edit",label:"Edit"},{id:"delete",label:"Delete",danger:true},...(composition.origin === "seed" && composition.decision === "pending" ? [{id:"accept",label:"Accept"}] : [])]} onAction={action => onCompositionAction(composition.id, action)}>
+      const usedAsBase = allEntries.some(item => !item.composition.deleted && inheritanceBase(item.composition.data) === Number(composition.data.node_no));
+      return <div key={composition.id} className={`review-occurrence-shell${composition.deleted ? " deleted" : ""}${link ? " review-derived-occurrence" : ""}`}>
         <button type="button" aria-label={`Composition Instance ${occurrence}: ${composition.data.composition_name || "Unnamed composition"}${composition.deleted ? ", deleted" : ""}${parent ? `, inherits from Composition Instance ${parent.occurrence}` : ""}`} aria-pressed={!adding && activeId === composition.id} aria-controls="description-composition-details" className="review-occurrence-row" onClick={() => onSelect(composition.id)}>
           <span ref={element => {if (element) badges.current.set(composition.id,element);else badges.current.delete(composition.id);}} className="review-occurrence-number" aria-label={`Composition Instance ${occurrence}`}>{occurrence}</span><strong title={composition.data.composition_name}>{composition.data.composition_name || "Unnamed composition"}</strong>
         </button>
-      </ReviewContextMenu>;
+        {editable && <div className="review-occurrence-actions">{composition.deleted ? <button type="button" className="review-recover" aria-label={`Recover composition instance ${occurrence}`} title="Recover composition" onClick={() => onCompositionAction(composition.id,"restore")}><RotateCcw size={14}/></button> : <>{composition.origin === "seed" && composition.decision === "pending" && <button type="button" aria-label={`Accept composition instance ${occurrence}`} title="Accept composition" onClick={() => onCompositionAction(composition.id,"accept")}><Check size={14}/></button>}<button type="button" className="review-hover-delete" aria-label={`Delete composition instance ${occurrence}`} title={usedAsBase ? "Unlink child instances before deleting their base" : "Delete composition"} disabled={usedAsBase} onClick={() => onCompositionAction(composition.id,"delete")}><X size={14}/></button></>}</div>}
+      </div>;
     })}{!entries.length && <div className="review-occurrence-empty">{query ? <>No evidence matches this fragment.<button type="button" onClick={() => onQuery("")}>Clear search</button></> : "No composition instances yet."}</div>}</div></div>
   </aside>;
 }

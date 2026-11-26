@@ -14,9 +14,9 @@ import { filterOccurrences, fitDescriptionPanels, indexOccurrences, resizeDescri
 import { changeInstanceSpan, instanceSpans, sameSpan } from "./descriptionEvidence";
 import { prepareDescriptionConstituent } from "./descriptionDraft";
 import { DescriptionReviewControls, FlagReasonPopover } from "./DescriptionReviewControls";
-import { ReviewContextMenu } from "./ReviewContextMenu";
-import { InheritanceCaption, InheritanceSelector, InheritedInformation } from "./DescriptionInheritancePanel";
-import { inheritedInformation, inheritanceBase, prepareAddOnlyInheritance } from "./descriptionInheritance";
+import { DescriptionEditableItem } from "./DescriptionEditableItem";
+import { InheritanceSelector, InheritedInformation } from "./DescriptionInheritancePanel";
+import { inheritedInformation, inheritanceBase, instanceNumber, prepareAddOnlyInheritance, setInheritanceBase } from "./descriptionInheritance";
 import { descriptionReviewState, descriptionReviewLabel, descriptionSaveFailure, descriptionReviewLocked } from "./descriptionReview";
 import { normalizeCountDraft, normalizeFiniteDraft } from "./numericDraft";
 import { amountMode, amountModePatch, normalizeAmountDraft, singleValue, singleValuePatch, singleValueQualifier, singleValueQualifierPatch, type AmountMode, type EditableAmount, type SingleValueQualifier } from "./amountDraft";
@@ -225,7 +225,6 @@ function ReviewRecordScreen({ document, summary, role, onBack, onAction, retry, 
   const t = useReviewTranslation();
   const isDescription = document.meta?.source_type === "patent_description" || document.meta?.section === "description";
   const [activeId, setActiveId] = React.useState<string | null>(document.compositions.find((item) => item.decision === "pending" && !item.deleted)?.id || document.compositions[0]?.id || null);
-  const [compositionEditRequest, setCompositionEditRequest] = React.useState({id:null as string | null, sequence:0});
   const [adding, setAdding] = React.useState(false);
   const [sourceChecked, setSourceChecked] = React.useState(Boolean(document.source_checked));
   const [outcome, setOutcome] = React.useState(document.review_outcome || "");
@@ -322,28 +321,17 @@ function ReviewRecordScreen({ document, summary, role, onBack, onAction, retry, 
     if (compositionId === activeId && !adding) { sourceNavigation.current=null; if (isDescription && !visibleOccurrences.some(entry => entry.composition.id === compositionId)) setCompositionQuery(""); if (active) showEvidence(active.data, titleFor(active)); return; }
     if (draftActive && !window.confirm(t("Discard unfinished composition edits?"))) return false;
     sourceNavigation.current=null;
-    setCompositionEditRequest(current => ({id:null,sequence:current.sequence}));
     setSpanEditRequest(current => ({id:null,sequence:current.sequence}));
     if (isDescription) onClearSelectedEvidence();
     if (isDescription && !visibleOccurrences.some(entry => entry.composition.id === compositionId)) setCompositionQuery("");
     setActiveId(compositionId); setAdding(false); setDraftActive(false); setMetadataDraft(false); setSelectionEpoch((value) => value + 1); onDraftChange(false);
     return true;
   };
-  const requestCompositionEdit = (compositionId: string) => {
-    if (!editable) return;
-    if (draftActive && compositionId === activeId && !adding) {
-      if (!window.confirm(t("Discard unfinished composition edits?"))) return;
-      setDraftActive(false);onDraftChange(false);setSelectionEpoch(value=>value+1);
-    }
-    if (selectComposition(compositionId) === false) return;
-    setCompositionEditRequest(current => ({id:compositionId,sequence:current.sequence+1}));
-  };
   const compositionAction = (compositionId: string, action: string) => {
     if (!editable) return;
     const run = async () => {
-      if (action === "edit") { requestCompositionEdit(compositionId); return; }
       if (draftActive && !window.confirm(t("Discard unfinished composition edits?"))) return;
-      if (draftActive) { setDraftActive(false); onDraftChange(false); setCompositionEditRequest(current=>({...current,id:null})); setSpanEditRequest(current=>({...current,id:null})); setSelectionEpoch(value=>value+1); }
+      if (draftActive) { setDraftActive(false); onDraftChange(false); setSpanEditRequest(current=>({...current,id:null})); setSelectionEpoch(value=>value+1); }
       const saved = await onAction(action as ReviewAction, { compositionId, actionId: newActionId() });
       if (saved && action === "delete" && activeId === compositionId) setActiveId(saved.compositions.find(item => !item.deleted)?.id || null);
     };
@@ -419,7 +407,7 @@ function ReviewRecordScreen({ document, summary, role, onBack, onAction, retry, 
         {!isDescription && <div className="review-composition-list">{document.compositions.map((composition, index) => <button key={composition.id} className={`review-composition-item ${activeId === composition.id ? "active" : ""} ${composition.deleted ? "deleted" : ""}`} onClick={() => selectComposition(composition.id)}><span>{t(composition.decision)}</span><strong>{titleFor(composition)}</strong><small>{isDescription ? `${t("Occurrence")} ${index + 1}` : `${t("Claim")} ${String(composition.data.claim_no ?? "—")}`}</small></button>)}</div>}
         {isDescription && active && !adding && compositionQuery && !visibleOccurrences.some(entry => entry.composition.id === activeId) && <div className="review-filtered-selection" role="status">The open composition instance is outside this filter.<button type="button" onClick={() => setCompositionQuery("")}>Clear search</button></div>}
         {isDescription && !active && !adding && <p className="review-details-empty">Select a composition instance to view its details, or add one.</p>}
-        {active && !adding && <CompositionCard isDescription={isDescription} key={`${active.id}:${selectionEpoch}`} composition={active} editable={editable && !metadataDraft} editRequest={compositionEditRequest} inheritOptions={document.compositions.map((item, index) => ({...item, instance_index:index+1})).filter((item) => item.id !== active.id && !item.deleted)} selectedEvidence={selectedEvidence} onAction={onAction} onDraftChange={(next) => { setDraftActive(next); if (isDescription && !next) { onClearSelectedEvidence(); setCompositionEditRequest(current => ({id:null,sequence:current.sequence})); setSpanEditRequest(current => ({id:null,sequence:current.sequence})); } onDraftChange(next); }} onAcceptedNext={nextPending} onSelectBase={selectComposition}/>}
+        {active && !adding && <CompositionCard isDescription={isDescription} key={`${active.id}:${selectionEpoch}`} composition={active} editable={editable && !metadataDraft} inheritOptions={document.compositions.map((item, index) => ({...item, instance_index:index+1})).filter((item) => item.id !== active.id && !item.deleted)} selectedEvidence={selectedEvidence} onAction={onAction} onDraftChange={(next) => { setDraftActive(next); if (isDescription && !next) { onClearSelectedEvidence(); setSpanEditRequest(current => ({id:null,sequence:current.sequence})); } onDraftChange(next); }} onAcceptedNext={nextPending} onSelectBase={selectComposition}/>}
         {adding && <CompositionEditor
           showClaimNumber={!isDescription}
           key="new-composition"
@@ -447,57 +435,59 @@ function DocumentReviewSection({ description, status, children }: { description:
   return description ? <details className="review-document-controls"><summary>Document review · {formatStatus(status)}</summary>{children}</details> : <>{children}</>;
 }
 
-type DescriptionEditScope = { kind: "details" | "constituent" | "restriction" | "evidence"; index?: number };
+type DescriptionEditScope = { kind: "details" | "constituent" | "restriction" | "evidence"; index?: number; field?: "composition_name" | "composition_type" | "inherits_from" };
 
-function DescriptionInstance({ composition, editable: documentEditable, inheritOptions, editRequest, selectedEvidence, onAction, onDraftChange, onSelectBase }: { composition: ReviewComposition; editable: boolean; inheritOptions: ReviewComposition[]; editRequest: {id:string|null;sequence:number}; selectedEvidence: RawEvidence[]; onAction: (action:ReviewAction, options?: {compositionId?:string;data?:unknown;reason?:string;actionId?:string}) => Promise<ReviewDocument|null>; onDraftChange:(next:boolean)=>void; onSelectBase:(id:string)=>void }) {
+function DescriptionInstance({ composition, editable: documentEditable, inheritOptions, selectedEvidence, onAction, onDraftChange }: { composition: ReviewComposition; editable: boolean; inheritOptions: ReviewComposition[]; selectedEvidence: RawEvidence[]; onAction: (action:ReviewAction, options?: {compositionId?:string;data?:unknown;reason?:string;actionId?:string}) => Promise<ReviewDocument|null>; onDraftChange:(next:boolean)=>void }) {
   const bridge = React.useContext(DescriptionSpanContext)!;
-  const [editor, setEditor] = React.useState<{scope?:DescriptionEditScope;initial:ReviewCompositionData;base:ReviewCompositionData;key:number}|null>(null);
-  const consumed = React.useRef({composition:0,evidence:0});
+  const [editor, setEditor] = React.useState<{scope:DescriptionEditScope;initial:ReviewCompositionData;base:ReviewCompositionData;key:number}|null>(null);
+  const [busy,setBusy] = React.useState(false);
+  const [mutationError,setMutationError] = React.useState("");
+  const consumedEvidence = React.useRef(0);
   const editable = documentEditable && !composition.deleted;
-  const open = (scope?:DescriptionEditScope, initial = composition.data) => {if(!editable) return;setEditor({scope,initial:clone(initial),base:clone(composition.data),key:Date.now()});onDraftChange(true);};
+  const open = (scope:DescriptionEditScope, initial = composition.data) => {if(!editable || editor || busy) return;setMutationError("");setEditor({scope,initial:clone(initial),base:clone(composition.data),key:Date.now()});onDraftChange(true);};
   const close = () => {setEditor(null);onDraftChange(false);bridge.setSelected(null);bridge.setMode("idle");bridge.setCandidate(null);window.getSelection()?.removeAllRanges();};
   React.useEffect(() => {
-    if (editRequest.id === composition.id && editRequest.sequence > consumed.current.composition && !composition.deleted) {consumed.current.composition=editRequest.sequence;open();}
-  }, [editRequest.id,editRequest.sequence]);
-  React.useEffect(() => {
-    if (bridge.editRequest.id === composition.id && bridge.editRequest.sequence > consumed.current.evidence && !composition.deleted) {consumed.current.evidence=bridge.editRequest.sequence;open({kind:"evidence"});bridge.setMode(bridge.selected ? "replace" : "add");}
+    if (bridge.editRequest.id === composition.id && bridge.editRequest.sequence > consumedEvidence.current && !composition.deleted) {consumedEvidence.current=bridge.editRequest.sequence;open({kind:"evidence"});bridge.setMode(bridge.selected ? "replace" : "add");}
   }, [bridge.editRequest.id,bridge.editRequest.sequence]);
   const save = async (data:ReviewCompositionData, reason = "", actionId: string = newActionId()) => {
     if (!editable) return null;
     if (editor && JSON.stringify(editor.base) !== JSON.stringify(composition.data)) throw new Error("This composition changed while you were editing. Cancel and reopen its editor to use the latest version. Your draft has not been saved.");
-    const result = await onAction("edit",{compositionId:composition.id,data:prepareAddOnlyInheritance(data,inheritOptions),reason,actionId});if(result) close();return result;
+    setBusy(true);
+    try {const result = await onAction("edit",{compositionId:composition.id,data:prepareAddOnlyInheritance(data,inheritOptions),reason,actionId});if(result) close();return result;}
+    finally {setBusy(false);}
   };
+  const remove = (next:ReviewCompositionData) => {setMutationError("");void save(next).catch(error=>setMutationError(error instanceof Error ? error.message : "Could not save this change."));};
   const sectionAction = (kind:"restriction", index:number|undefined, action:"edit"|"delete") => {
-    const field = "constraints";
     const next = clone(composition.data);
-    if (action === "delete") { next[field] = (next[field] || []).filter((_,i)=>i!==index) as never; void save(next); return; }
+    if (action === "delete") {next.constraints=(next.constraints || []).filter((_,i)=>i!==index);remove(next);return;}
     if (index == null) {
-      const rows = next[field] || [];
-      const item = {constraint_id:nextConstraintId([...(next.constraints || []),...inheritedInformation(next,inheritOptions).constraints]),mode:"sum",member_refs:[],constituent_status:"included",selection:{min:null,max:null},amount_comparator:null};
-      next[field] = [...rows,item] as never;index=rows.length;
+      const rows = next.constraints || [];
+      next.constraints=[...rows,{constraint_id:nextConstraintId([...rows,...inheritedInformation(next,inheritOptions).constraints]),mode:"sum",member_refs:[],constituent_status:"included",selection:{min:null,max:null},amount_comparator:null}];index=rows.length;
     }
     open({kind,index},next);
   };
-  const deleteConstituent = (index:number) => {const next=clone(composition.data);next.constituents=next.constituents?.filter((_,i)=>i!==index);void save(next);};
-  const inline = Boolean(editor && editable && editor.scope?.kind === "constituent" && editor.scope.index != null);
-  const editorView = editor && editable ? <CompositionEditor key={editor.key} inlineConstituent={inline} showClaimNumber={false} initial={editor.initial} editScope={editor.scope} inheritOptions={inheritOptions} selectedEvidence={selectedEvidence} requiredReason={false} submitLabel="Save changes" onCancel={close} onSave={save} onDraftChange={onDraftChange}/> : null;
-  if (editorView && !inline) return editorView;
-  const viewEditable = editable && !inline;
-  return <DescriptionSpanContext.Provider value={inline ? {...bridge,editable:false} : bridge}><section className="review-composition-card review-description-instance">
-    <section className={`review-instance-section review-instance-details${inheritanceBase(composition.data) ? " review-derived-instance" : ""}`}><ReviewContextMenu className="review-instance-details-actions" label="Actions for Instance details" actions={viewEditable ? [{id:"edit",label:"Edit"}] : []} onAction={() => open({kind:"details"})}><header><h3>Instance details</h3></header><dl className="review-instance-facts"><div><dt>Name</dt><dd>{composition.data.composition_name || "Unnamed composition"}</dd></div><div><dt>Material type</dt><dd>{composition.data.composition_type || "—"}</dd></div></dl></ReviewContextMenu><InheritanceCaption data={composition.data} records={inheritOptions}/></section>
-    <InheritedInformation data={composition.data} records={inheritOptions}/>
-    <CompositionDataView data={composition.data} description bases={inheritOptions} editable={viewEditable} constituentEditor={inline && editor?.scope?.index != null ? {index:editor.scope.index,row:editor.initial.constituents?.[editor.scope.index],content:editorView} : undefined} onSelectBase={onSelectBase} onEditConstituent={index=>{const next=clone(composition.data);if(index === (next.constituents || []).length) next.constituents=[...(next.constituents || []),{constituent_name:"",constituent_status:"included"}];open({kind:"constituent",index},next);}} onDeleteConstituent={deleteConstituent} onSectionAction={sectionAction}/>
-    <DescriptionEvidenceSection data={composition.data} editing={false}/>
+  const deleteConstituent = (index:number) => {const next=clone(composition.data);next.constituents=next.constituents?.filter((_,i)=>i!==index);remove(next);};
+  const editorView = editor && editable ? <CompositionEditor key={editor.key} inlineSection inlineConstituent={editor.scope.kind === "constituent"} showClaimNumber={false} initial={editor.initial} editScope={editor.scope} inheritOptions={inheritOptions} selectedEvidence={selectedEvidence} requiredReason={false} submitLabel="Save changes" onCancel={close} onSave={save} onDraftChange={onDraftChange}/> : null;
+  const viewEditable = editable && !editor && !busy;
+  const parent = inheritOptions.find(record => Number(record.data.node_no) === inheritanceBase(composition.data));
+  return <DescriptionSpanContext.Provider value={{...bridge,editable:viewEditable}}><section className="review-composition-card review-description-instance">
+    <section className={`review-instance-section review-instance-details${inheritanceBase(composition.data) ? " review-derived-instance" : ""}`}><header><h3>Instance details</h3></header><div className="review-instance-fields">
+      {([['composition_name','Name',composition.data.composition_name || 'Unnamed composition'],['composition_type','Material type',composition.data.composition_type || '—'],['inherits_from','Inherits from',parent ? `Composition Instance ${instanceNumber(parent)}: ${titleFor(parent)}` : inheritanceBase(composition.data) ? `Composition Instance ${inheritanceBase(composition.data)}` : 'None']] as const).map(([field,label,value]) => editor?.scope.kind === "details" && editor.scope.field === field ? <div className="review-inline-slot" key={field}>{editorView}</div> : <DescriptionEditableItem key={field} className="review-instance-field" label={`Edit ${label.toLowerCase()}`} onEdit={viewEditable ? () => open({kind:"details",field}) : undefined} onDelete={viewEditable && field === "inherits_from" && inheritanceBase(composition.data) ? () => remove(setInheritanceBase(clone(composition.data),null)) : undefined} deleteLabel="Clear inheritance link"><small>{label}</small><span>{value}</span></DescriptionEditableItem>)}
+    </div></section>
+    <InheritedInformation data={editor?.scope.field === "inherits_from" && bridge.data ? bridge.data : composition.data} records={inheritOptions}/>
+    {mutationError && <p className="review-inline-error" role="alert">{mutationError}</p>}
+    <CompositionDataView data={composition.data} description editable={viewEditable} constituentEditor={editor?.scope.kind === "constituent" && editor.scope.index != null ? {index:editor.scope.index,row:editor.initial.constituents?.[editor.scope.index],content:editorView} : undefined} restrictionEditor={editor?.scope.kind === "restriction" && editor.scope.index != null ? {index:editor.scope.index,content:editorView} : undefined} onEditConstituent={index=>{const next=clone(composition.data);if(index === (next.constituents || []).length) next.constituents=[...(next.constituents || []),{constituent_name:"",constituent_status:"included"}];open({kind:"constituent",index},next);}} onDeleteConstituent={deleteConstituent} onSectionAction={sectionAction}/>
+    <DescriptionEvidenceSection data={composition.data} editing={false} inlineEditor={editor?.scope.kind === "evidence" ? {span:bridge.selected || undefined,content:editorView} : undefined}/>
   </section></DescriptionSpanContext.Provider>;
 }
 
-function CompositionCard({ isDescription, composition, editable, editRequest, inheritOptions, selectedEvidence, onAction, onDraftChange, onAcceptedNext, onSelectBase }: { onSelectBase: (id: string) => void; isDescription: boolean; composition: ReviewComposition; editable: boolean; editRequest: {id:string|null;sequence:number}; inheritOptions: ReviewComposition[]; selectedEvidence: RawEvidence[]; onAction: (action: ReviewAction, options?: { compositionId?: string; data?: unknown; reason?: string; actionId?: string }) => Promise<ReviewDocument | null>; onDraftChange: (next: boolean) => void; onAcceptedNext: () => void }) {
+function CompositionCard({ isDescription, composition, editable, inheritOptions, selectedEvidence, onAction, onDraftChange, onAcceptedNext, onSelectBase }: { onSelectBase: (id: string) => void; isDescription: boolean; composition: ReviewComposition; editable: boolean; inheritOptions: ReviewComposition[]; selectedEvidence: RawEvidence[]; onAction: (action: ReviewAction, options?: { compositionId?: string; data?: unknown; reason?: string; actionId?: string }) => Promise<ReviewDocument | null>; onDraftChange: (next: boolean) => void; onAcceptedNext: () => void }) {
   const t = useReviewTranslation();
   const [editing, setEditing] = React.useState(false);
   const actionIds = React.useRef<Record<string, string>>({});
   const run = async (action: "accept" | "restore" | "reverse") => { const actionId = actionIds.current[action] || (actionIds.current[action] = newActionId()); const saved = await onAction(action, { compositionId: composition.id, actionId }); if (saved) delete actionIds.current[action]; return saved; };
   const accept = async (next = false) => { const saved = await run("accept"); if (saved && next) onAcceptedNext(); };
-  if (isDescription) return <DescriptionInstance composition={composition} editable={editable} inheritOptions={inheritOptions} editRequest={editRequest} selectedEvidence={selectedEvidence} onAction={onAction} onDraftChange={onDraftChange} onSelectBase={onSelectBase}/>;
+  if (isDescription) return <DescriptionInstance composition={composition} editable={editable} inheritOptions={inheritOptions} selectedEvidence={selectedEvidence} onAction={onAction} onDraftChange={onDraftChange}/>;
   if (editing) return <CompositionEditor showClaimNumber={!isDescription} initial={composition.data} inheritOptions={inheritOptions} selectedEvidence={selectedEvidence} requiredReason={!isDescription} submitLabel={t("Save edit")} onCancel={() => { setEditing(false); onDraftChange(false); }} onSave={async (data, reason, actionId) => { const saved = await onAction("edit", { compositionId: composition.id, data, reason, actionId }); if (saved) { setEditing(false); onDraftChange(false); } return saved; }} onDraftChange={onDraftChange}/>;
   return <section className="review-composition-card">{isDescription ? <section className="review-instance-section"><header><h3>Instance details</h3></header><dl className="review-instance-facts"><div><dt>Material type</dt><dd>{composition.data.composition_type || "—"}</dd></div></dl></section> : <header><div><strong><SourceLink value={composition.data} label={titleFor(composition)}>{titleFor(composition)}</SourceLink></strong><span>{`${t("Claim")} ${String(composition.data.claim_no ?? "—")}`} · {t(composition.origin)}</span></div><span className={`review-decision ${t(composition.decision)}`}>{t(composition.decision)}</span></header>}<CompositionDataView data={composition.data} description={isDescription} bases={inheritOptions} onSelectBase={onSelectBase}/>{isDescription ? <DescriptionEvidenceSection data={composition.data} editing={false}/> : <EvidenceList evidence={evidenceFor(composition.data)} />}
     {composition.deleted ? <button disabled={!editable} onClick={() => void run("restore")}><RotateCcw size={14}/> {t("Restore")}</button> : <div className="review-action-row">{editable && <>{composition.decision === "pending" && <>{!isDescription && <button onClick={() => void accept(false)}><Check size={14}/> {t("Accept")}</button>}<button onClick={() => void accept(true)}>{t("Accept & next")}</button></>}<button onClick={() => { setEditing(true); onDraftChange(true); }}><FileDiff size={14}/> {t("Edit")}</button>{isDescription ? <button className="review-danger" title="Remove this instance; restore it through Show deleted" onClick={() => { void onAction("delete", {compositionId: composition.id, actionId: newActionId()}); }}>Delete</button> : <ReasonAction label={t("Delete")} onSubmit={(reason, actionId) => onAction("delete", { compositionId: composition.id, reason, actionId })}/>}{composition.origin === "seed" && composition.decision !== "pending" && (isDescription ? <details className="review-instance-more"><summary>More</summary><button onClick={() => void run("reverse")}>Mark unreviewed</button></details> : <button onClick={() => void run("reverse")}><Undo2 size={14}/> {t("Reverse decision")}</button>)}</>}</div>}</section>;
@@ -510,7 +500,7 @@ function ReasonAction({ label, onSubmit }: { label: string; onSubmit: (reason: s
   return <form className="review-reason-form" onSubmit={(event) => { event.preventDefault(); if (reason.trim()) void onSubmit(reason, actionId.current).then((saved) => { if (saved) { setOpen(false); setReason(""); actionId.current = newActionId(); } }); }}><input autoFocus value={reason} onChange={(event) => setReason(event.target.value)} placeholder={`${label}: ${t("Reason (required)")}`}/><button type="submit" disabled={!reason.trim()}>{label}</button><button type="button" onClick={() => setOpen(false)}>{t("Cancel")}</button></form>;
 }
 
-function CompositionEditor({ showClaimNumber = true, inlineConstituent = false, editScope, initial, inheritOptions = [], selectedEvidence = [], requiredReason, submitLabel, onCancel, onSave, onDraftChange }: { showClaimNumber?: boolean; inlineConstituent?: boolean; editScope?: DescriptionEditScope; initial: ReviewCompositionData; inheritOptions?: ReviewComposition[]; selectedEvidence?: RawEvidence[]; requiredReason: boolean; submitLabel: string; onCancel: () => void; onSave: (data: ReviewCompositionData, reason: string, actionId: string) => Promise<unknown>; onDraftChange: (next: boolean) => void }) {
+function CompositionEditor({ showClaimNumber = true, inlineConstituent = false, inlineSection = false, editScope, initial, inheritOptions = [], selectedEvidence = [], requiredReason, submitLabel, onCancel, onSave, onDraftChange }: { showClaimNumber?: boolean; inlineConstituent?: boolean; inlineSection?: boolean; editScope?: DescriptionEditScope; initial: ReviewCompositionData; inheritOptions?: ReviewComposition[]; selectedEvidence?: RawEvidence[]; requiredReason: boolean; submitLabel: string; onCancel: () => void; onSave: (data: ReviewCompositionData, reason: string, actionId: string) => Promise<unknown>; onDraftChange: (next: boolean) => void }) {
   const t = useReviewTranslation();
   const [inheritSourceId, setInheritSourceId] = React.useState("");
   const [saving, setSaving] = React.useState(false);
@@ -621,12 +611,13 @@ function CompositionEditor({ showClaimNumber = true, inlineConstituent = false, 
     } catch (error) { setSubmitError(error instanceof Error ? error.message : t("The composition contains an invalid value.")); }
   };
 
-  return <form className={`review-composition-editor${!showClaimNumber ? " review-description-form" : ""}${editScope ? " review-scoped-editor" : ""}${inlineConstituent ? " review-inline-constituent-editor" : ""}`} onSubmit={(event) => { event.preventDefault(); submit(); }}>
+  return <form className={`review-composition-editor${!showClaimNumber ? " review-description-form" : ""}${editScope ? " review-scoped-editor" : ""}${inlineSection ? " review-inline-editor" : ""}${inlineConstituent ? " review-inline-constituent-editor" : ""}`} onSubmit={(event) => { event.preventDefault(); submit(); }}>
     {showClaimNumber && <h3>{submitLabel}</h3>}
-    {(!editScope || (!showClaimNumber && editScope.kind === "details")) && (showClaimNumber ? <div className="review-fields"><label>{t("Name")}<input value={data.composition_name || ""} onChange={(event) => set({ composition_name: event.target.value })}/></label>{showClaimNumber && <label>{t("Claim no.")}<input value={String(data.claim_no ?? "")} onChange={(event) => set({ claim_no: event.target.value })}/></label>}<label>{t("Type")}<input value={data.composition_type || ""} onChange={(event) => set({ composition_type: event.target.value })}/></label></div> : <section className={`review-instance-section review-instance-details${inheritanceBase(data) ? " review-derived-instance" : ""}`}><header><h3>Instance details</h3></header><div className="review-fields"><label>{t("Name")}<input value={data.composition_name || ""} onChange={(event) => set({ composition_name: event.target.value })}/></label>{showClaimNumber && <label>{t("Claim no.")}<input value={String(data.claim_no ?? "")} onChange={(event) => set({ claim_no: event.target.value })}/></label>}<label>Material type<input value={data.composition_type || ""} onChange={(event) => set({ composition_type: event.target.value })}/></label></div><InheritanceSelector data={data} records={inheritOptions} onChange={next => {setData(next);onDraftChange(true);}}/></section>)}
-    {!showClaimNumber && !inlineConstituent && (!editScope || ["details","constituent","restriction"].includes(editScope.kind)) && <InheritedInformation data={data} records={inheritOptions}/>}
+    {!editScope?.field && (!editScope || (!showClaimNumber && editScope.kind === "details")) && (showClaimNumber ? <div className="review-fields"><label>{t("Name")}<input value={data.composition_name || ""} onChange={(event) => set({ composition_name: event.target.value })}/></label>{showClaimNumber && <label>{t("Claim no.")}<input value={String(data.claim_no ?? "")} onChange={(event) => set({ claim_no: event.target.value })}/></label>}<label>{t("Type")}<input value={data.composition_type || ""} onChange={(event) => set({ composition_type: event.target.value })}/></label></div> : <section className={`review-instance-section review-instance-details${inheritanceBase(data) ? " review-derived-instance" : ""}`}><header><h3>Instance details</h3></header><div className="review-fields"><label>{t("Name")}<input value={data.composition_name || ""} onChange={(event) => set({ composition_name: event.target.value })}/></label>{showClaimNumber && <label>{t("Claim no.")}<input value={String(data.claim_no ?? "")} onChange={(event) => set({ claim_no: event.target.value })}/></label>}<label>Material type<input value={data.composition_type || ""} onChange={(event) => set({ composition_type: event.target.value })}/></label></div><InheritanceSelector data={data} records={inheritOptions} onChange={next => {setData(next);onDraftChange(true);}}/></section>)}
+    {!showClaimNumber && editScope?.field && (editScope.field === "inherits_from" ? <InheritanceSelector data={data} records={inheritOptions} onChange={next => {setData(next);onDraftChange(true);}}/> : <label>{editScope.field === "composition_name" ? "Name" : "Material type"}<input autoFocus value={data[editScope.field] || ""} onChange={event => set({[editScope.field!]:event.target.value})}/></label>)}
+    {!showClaimNumber && !inlineSection && !inlineConstituent && (!editScope || ["details","constituent","restriction"].includes(editScope.kind)) && <InheritedInformation data={data} records={inheritOptions}/>}
     {showClaimNumber && inheritOptions.length > 0 && <div className="review-inherit-controls"><label>{t("Inherit constituents from")}<select value={inheritSourceId} onChange={(event) => setInheritSourceId(event.target.value)}><option value="">{t("Select a composition")}</option>{inheritOptions.map((item) => <option key={item.id} value={item.id}>{titleFor(item)}{showClaimNumber ? ` · ${t("Claim")} ${String(item.data.claim_no ?? "—")}` : ""}</option>)}</select></label><button type="button" disabled={!inheritSourceId} onClick={inheritConstituents}>{t("Inherit constituents")}</button></div>}
-    {showClaimNumber ? <ConstituentEditor rows={constituents} constraints={constraints} referenceNames={constituentReferenceNames} errors={showValidation ? draftErrors.constituentNames : {}} onNameFocus={beginConstituentRename} onNameBlur={finishConstituentRename} onChange={updateConstituents}/> : showSection("constituent") && <DescriptionConstituents inline={inlineConstituent} onlyIndex={editScope?.index} rows={constituents} evidence={instanceSpans(data)} errors={showValidation ? draftErrors.constituentNames : {}} protectedNames={constraints.flatMap(c => c.member_refs || [])} change={updateConstituents} renderAmount={(row, label, change) => <AmountControls row={row} label={label} labelled compact onChange={change}/>}/>}{(showClaimNumber || showSection("restriction")) && <ConstraintEditor reservedIds={showClaimNumber ? [] : inheritedData.constraints.map(row => String(row.constraint_id))} description={!showClaimNumber} unrepresented={data.unrepresented_relations || []} onlyIndex={editScope?.kind === "restriction" ? editScope.index : undefined} rows={constraints} constituents={[...constituents, ...inherited]} errors={showValidation ? draftErrors.constraints : {}} onChange={next => set({constraints:next})}/>}
+    {showClaimNumber ? <ConstituentEditor rows={constituents} constraints={constraints} referenceNames={constituentReferenceNames} errors={showValidation ? draftErrors.constituentNames : {}} onNameFocus={beginConstituentRename} onNameBlur={finishConstituentRename} onChange={updateConstituents}/> : showSection("constituent") && <DescriptionConstituents inline={inlineConstituent} onlyIndex={editScope?.index} rows={constituents} evidence={instanceSpans(data)} errors={showValidation ? draftErrors.constituentNames : {}} protectedNames={constraints.flatMap(c => c.member_refs || [])} change={updateConstituents} renderAmount={(row, label, change) => <AmountControls row={row} label={label} labelled compact onChange={change}/>}/>}{(showClaimNumber || showSection("restriction")) && <ConstraintEditor inline={inlineSection} reservedIds={showClaimNumber ? [] : inheritedData.constraints.map(row => String(row.constraint_id))} description={!showClaimNumber} unrepresented={data.unrepresented_relations || []} onlyIndex={editScope?.kind === "restriction" ? editScope.index : undefined} rows={constraints} constituents={[...constituents, ...inherited]} errors={showValidation ? draftErrors.constraints : {}} onChange={next => set({constraints:next})}/>}
 
 
     {showClaimNumber && selectedEvidence.length > 0 && <div className="review-action-row"><button type="button" onClick={() => set({ evidence_spans: [...evidence, ...selectedEvidence.filter((span) => !evidence.some((current) => current.start === span.start && current.end === span.end))] })}>{t("Add")}{t("Selected spans")}: {selectedEvidence.length}</button><button type="button" onClick={() => set({ evidence_spans: selectedEvidence })}>{t("Replace evidence with selection")}</button></div>}
@@ -682,12 +673,12 @@ function ConstituentEditor({ rows, constraints, referenceNames, errors, onNameFo
   })}</section>;
 }
 
-function ConstraintEditor({ description = false, unrepresented = [], rows, constituents, errors, onChange, onlyIndex, reservedIds = [] }: { reservedIds?: string[]; onlyIndex?: number; description?: boolean; unrepresented?:unknown[]; rows: ReviewConstraint[]; constituents: NonNullable<ReviewCompositionData["constituents"]>; errors: Record<number, ConstraintDraftFieldErrors>; onChange: (rows: ReviewConstraint[]) => void }) {
+function ConstraintEditor({ inline = false, description = false, unrepresented = [], rows, constituents, errors, onChange, onlyIndex, reservedIds = [] }: { inline?: boolean; reservedIds?: string[]; onlyIndex?: number; description?: boolean; unrepresented?:unknown[]; rows: ReviewConstraint[]; constituents: NonNullable<ReviewCompositionData["constituents"]>; errors: Record<number, ConstraintDraftFieldErrors>; onChange: (rows: ReviewConstraint[]) => void }) {
   const t = useReviewTranslation();
   const update = (index: number, patch: Partial<ReviewConstraint>) => onChange(rows.map((row, rowIndex) => rowIndex === index ? { ...row, ...patch } : row));
   const names = selectableConstituentNames(constituents);
   if (description) names.sort((a,b) => a.localeCompare(b,"en",{sensitivity:"base",numeric:true}));
-  return <section className={`review-structured-section${description ? " review-restrictions" : ""}`}><header><strong>{description ? "Constituent restrictions" : t("Constraints")}</strong>{onlyIndex == null && <button type="button" onClick={() => onChange([...rows, { constraint_id: nextConstraintId([...rows, ...reservedIds.map(constraint_id => ({constraint_id}))]), mode: "sum", member_refs: [], constituent_status: "included", selection: { min: null, max: null }, amount_comparator: null, amount_unit: null, amount_lower_value: null, amount_upper_value: null, amount_lower_endpoint_type: null, amount_upper_endpoint_type: null, ...(!description ? {evidence:""} : {}) }])}><Plus size={13}/> {description ? "Add restriction" : t("Add")}</button>}</header>{rows.map((row, index) => {
+  return <section className={inline ? "review-inline-restriction-fields" : `review-structured-section${description ? " review-restrictions" : ""}`} >{!inline && <header><strong>{description ? "Constituent restrictions" : t("Constraints")}</strong>{onlyIndex == null && <button type="button" onClick={() => onChange([...rows, { constraint_id: nextConstraintId([...rows, ...reservedIds.map(constraint_id => ({constraint_id}))]), mode: "sum", member_refs: [], constituent_status: "included", selection: { min: null, max: null }, amount_comparator: null, amount_unit: null, amount_lower_value: null, amount_upper_value: null, amount_lower_endpoint_type: null, amount_upper_endpoint_type: null, ...(!description ? {evidence:""} : {}) }])}><Plus size={13}/> {description ? "Add restriction" : t("Add")}</button>}</header>}{rows.map((row, index) => {
     if (onlyIndex != null && onlyIndex !== index) return null;
     const rowErrors = errors[index] || {};
     const refs = row.member_refs || [];
@@ -709,7 +700,7 @@ function ConstraintEditor({ description = false, unrepresented = [], rows, const
       {!description && rowErrors.evidence && <span className="review-inline-error" role="alert">{t(rowErrors.evidence || "")}</span>}
       <button className="review-constraint-remove" type="button" onClick={() => onChange(rows.filter((_, rowIndex) => rowIndex !== index))}>{description ? "Delete restriction" : t("Remove constraint")}</button>
     </div>;
-  })}{description && <UnrepresentedRestrictions values={unrepresented}/>}</section>;
+  })}{description && !inline && <UnrepresentedRestrictions values={unrepresented}/>}</section>;
 }
 
 function EvidenceList({ evidence }: { evidence: RawEvidence[] }) {
