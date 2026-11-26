@@ -1,4 +1,4 @@
-import { prepareRatio, ratioIntervals, ratioIntervalText, ratioProblem, toggleRatioMember } from "../src/review/ratios";
+import { prepareRatio, ratioIntervals, ratioIntervalText, ratioProblem, isLegacyRatio, simpleRatioFromValues } from "../src/review/ratios";
 import {
   descriptionRestrictionSelectionPatch,
   restrictionSelectionLabel,
@@ -100,9 +100,6 @@ const calculatedRatio:ReviewConstraint={constraint_id:"ratio",mode:"ratio",membe
 expect(JSON.stringify(ratioIntervals(calculatedRatio,ratioRows).map(v=>[v.lower,v.upper])) === JSON.stringify([[1,1],[1.5,3],[3,6]]),"ratio range bounds cross lower/upper concentration endpoints");
 expect(ratioIntervals({...calculatedRatio,ratio_values:[1,[2,3],4]},ratioRows)[1].upper===3,"entered multi-member ranges retain their supplied values");
 expect(!("ratio_values" in prepareRatio(calculatedRatio)),"calculated ratios store references only");
-let selectionRatio:ReviewConstraint={constraint_id:"ratio",mode:"ratio",member_refs:[],ratio_values:[]};
-selectionRatio=toggleRatioMember(selectionRatio,"B",true);selectionRatio=toggleRatioMember(selectionRatio,"A",true);selectionRatio.ratio_values=[2,1];selectionRatio=toggleRatioMember(selectionRatio,"B",false);
-expect(selectionRatio.member_refs?.join() === "A" && selectionRatio.ratio_values?.[0]===1,"selection order and aligned values survive member removal");
 expect(Boolean(ratioProblem({...calculatedRatio,ratio_values:[0,0,0]},ratioRows)),"all-zero entered ratios are rejected");
 expect(Boolean(ratioProblem(calculatedRatio,[{...ratioRows[0],amount_lower_value:0},...ratioRows.slice(1)])),"zero reference bounds cannot be divided");
 expect(Boolean(ratioProblem(calculatedRatio,[ratioRows[0],{...ratioRows[1],amount_unit:"at%"},ratioRows[2]])),"incompatible concentration units cannot be mixed");
@@ -112,5 +109,16 @@ expect(ratioIntervalText({lower:1,upper:2,lowerEndpoint:"open",upperEndpoint:"cl
 expect(ratioIntervals(calculatedRatio,[{...ratioRows[0],amount_lower_value:"4",amount_upper_value:"4"},...ratioRows.slice(1)])[1].lower===1.5,"in-progress numeric concentration drafts remain calculable before save normalization");
 expect(!hasCompositionDraftErrors(validateCompositionDraft({constituents:ratioRows,constraints:[calculatedRatio]},false)),"ratio draft validation accepts description ratios");
 expect(hasCompositionDraftErrors(validateCompositionDraft({constituents:ratioRows,constraints:[calculatedRatio]})),"claims draft validation rejects description-only ratio mode");
+
+const simpleStart:ReviewConstraint={constraint_id:"ratio",mode:"ratio",member_refs:[],ratio_values:[]};
+const simpleRow=simpleRatioFromValues(simpleStart,["A","B","C"],{A:1,B:2,C:0});
+expect(JSON.stringify(simpleRow.member_refs)==='["A","B"]' && JSON.stringify(simpleRow.ratio_values)==='[1,2]',"zero-valued constituents are omitted without changing the entered ratio");
+expect(simpleRatioFromValues(simpleRow,["A","B","C"],{A:0,B:2,C:3}).member_refs?.join() === "B,C","clearing a value to zero removes only that member");
+expect(simpleRatioFromValues(simpleRow,["A","B","C"],{A:"",B:2,C:"0.0"}).member_refs?.join() === "B","blank and numeric-zero drafts are unused markers");
+expect(Boolean(ratioProblem(simpleRatioFromValues(simpleStart,["A","B"],{A:0,B:0}),ratioRows)),"all-zero input cannot be saved");
+expect(Boolean(ratioProblem(simpleRatioFromValues(simpleStart,["A","B"],{A:-1,B:2}),ratioRows)),"negative values cannot be silently dropped");
+expect(Boolean(ratioProblem(simpleRatioFromValues(simpleStart,["A","B"],{A:"oops",B:2}),ratioRows)),"invalid numeric text is rejected instead of being treated as zero");
+expect(!isLegacyRatio(simpleRow) && !isLegacyRatio(simpleStart),"new scalar ratios use the simplified editor");
+expect(isLegacyRatio(calculatedRatio) && isLegacyRatio({...calculatedRatio,ratio_values:[1,[2,3],4]}) && isLegacyRatio({...calculatedRatio,ratio_values:[0,1,2]}),"earlier calculations, intervals and explicit zero members are preserved rather than reinterpreted");
 
 console.log("review constraint draft tests passed");

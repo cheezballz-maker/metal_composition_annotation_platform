@@ -15,7 +15,7 @@ import { changeInstanceSpan, instanceSpans, sameSpan } from "./descriptionEviden
 import { prepareDescriptionConstituent } from "./descriptionDraft";
 import { DescriptionReviewControls, FlagReasonPopover } from "./DescriptionReviewControls";
 import { AddRestrictionButtons, DescriptionRatioEditor } from "./DescriptionRatio";
-import { prepareRatio } from "./ratios";
+import { isLegacyRatio, prepareRatio } from "./ratios";
 import { DescriptionEditableItem } from "./DescriptionEditableItem";
 import { InheritanceSelector, InheritedInformation } from "./DescriptionInheritancePanel";
 import { inheritedInformation, inheritanceBase, instanceNumber, prepareAddOnlyInheritance, setInheritanceBase } from "./descriptionInheritance";
@@ -599,6 +599,7 @@ function CompositionEditor({ showClaimNumber = true, inlineConstituent = false, 
     finally { setSaving(false); }
   };
   const deletion=useConstituentDeletion(next=>{void persist(next,true);});
+  const savedLegacyRatio = !showClaimNumber && editScope?.kind === "restriction" && editScope.index != null && isLegacyRatio(constraints[editScope.index] || {});
   const scopedConstituent = editScope?.kind === "constituent" && editScope.index != null ? constituents[editScope.index] : null;
   const canDeleteConstituent = scopedConstituent && Boolean(initial.constituents?.[editScope!.index!]?.constituent_name);
   const deleteSection = () => {
@@ -652,7 +653,7 @@ function CompositionEditor({ showClaimNumber = true, inlineConstituent = false, 
     {showValidation && !showSection("restriction") && Object.values(draftErrors.constraints).map((errors,index)=>errors.ratio ? <span key={index} className="review-inline-error" role="alert">{errors.ratio}</span> : null)}
     {submitError && <span className="review-inline-error" role="alert">{t(submitError)}</span>}
     {deletion.confirmation}
-    <div className="review-action-row"><button className="review-primary" type="submit" disabled={saving || (requiredReason && !reason.trim()) || (showValidation && draftInvalid) || (evidenceEditor && (!spanBridge?.candidate || sameSpan(spanBridge.candidate,spanBridge.selected)))}><Save size={14}/>{saving ? "Saving…" : submitLabel}</button>{(canDeleteConstituent || (evidenceEditor && spanBridge?.selected)) && <button type="button" className="review-delete-button" disabled={saving} onClick={deleteSection}>{evidenceEditor ? "Delete span" : "Delete constituent"}</button>}<button type="button" disabled={saving} onClick={onCancel} title="Esc">{t("Cancel")}</button></div>
+    <div className="review-action-row">{!savedLegacyRatio && <button className="review-primary" type="submit" disabled={saving || (requiredReason && !reason.trim()) || (showValidation && draftInvalid) || (evidenceEditor && (!spanBridge?.candidate || sameSpan(spanBridge.candidate,spanBridge.selected)))}><Save size={14}/>{saving ? "Saving…" : submitLabel}</button>}{(canDeleteConstituent || (evidenceEditor && spanBridge?.selected)) && <button type="button" className="review-delete-button" disabled={saving} onClick={deleteSection}>{evidenceEditor ? "Delete span" : "Delete constituent"}</button>}<button type="button" disabled={saving} onClick={onCancel} title="Esc">{t("Cancel")}</button></div>
   </form>;
 }
 

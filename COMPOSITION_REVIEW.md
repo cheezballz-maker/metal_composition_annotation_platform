@@ -131,42 +131,27 @@ retry because their persistence outcome is uncertain. Cancel/Esc discards drafts
 
 ### Constituent ratios in Patent Descriptions
 
-Use **Add ratio** under Constituent restrictions. Click constituent checkboxes in
-ratio order; numbered markers show their positions. Select **Enter ratio** for
-per-member values or finite closed ranges, or **Use concentrations** to calculate
-from Base values. Local and inherited constituents are available. Reselecting a
-member moves it to the end; unsaved entered values are retained when switching
-input modes. Ratio cards edit inline and retain Delete/Cancel/Esc and Ctrl+Z.
-
-The ratio contract adds one mode and one optional field to `constraints`:
+Use **+ Ratio restriction** under Constituent restrictions. All local and inherited
+constituent names appear in alphabetical order, each with a single value starting
+at 0. Enter coefficients directly: A=1, B=2, C=0 saves A:B = 1:2. Zero (or a cleared
+field) means unused; it is omitted from the saved ratio. At least two positive
+finite values are required. The preview follows display order, keeping names and
+values paired. No selection checkboxes, ordering controls, concentration
+calculation, value/range selector or ratio range inputs are presented.
 
 ```json
-{"constraint_id":"k3","mode":"ratio","member_refs":["Cu","Ni","Al"],"ratio_values":[1,[2,3],4]}
+{"constraint_id":"k3","mode":"ratio","member_refs":["A","B"],"ratio_values":[1,2]}
 ```
 
-`member_refs` preserves selection order. Each entered value is a non-negative
-number or `[lower, upper]` closed range; values align positionally with the
-members. At least two different members and one nonzero value are required.
-Calculated ratios omit `ratio_values`; no calculated numbers, basis, units,
-inclusion, selection counts or separate evidence are stored on the ratio.
-Composition evidence continues to support the record. Exports retain member
-order, and canonical identity never sorts ratio members independently of values.
-Claims retain their original restriction contract.
-
-Calculation uses Base concentrations only, with the first selected constituent
-normalized to 1. For another member B and reference A, bounds are
-`B.lower / A.upper` and `B.upper / A.lower`. Supported compatible concentration
-units are reconciled for arithmetic, without mass/atomic conversion. Missing or
-preferred-only Base values, excluded members, unresolved balances, incompatible
-units, non-finite/unbounded inputs and a nonpositive reference lower bound block
-calculation. Range endpoints retain open/closed/approximate meaning in the preview.
-Bounds assume independently varying input concentrations; other restrictions are
-not solved, and bounds sharing an uncertain reference are not independent
-combinations. Stored concentrations remain authoritative.
-
-Calculated ratios recompute after concentration or inherited-base edits.
-Validation rejects edits that would leave a saved calculated ratio invalid;
-previous data remain intact. Existing annotations are not converted or migrated.
+The existing ratio schema remains compatible. New UI entries save only nonzero
+scalar values. Earlier calculated, ranged or explicitly zero-containing ratios
+remain readable/exportable exactly as stored; their old editor controls are not
+shown. To replace one, delete that restriction and add a new ratio restriction.
+Opening or cancelling an editor never converts existing data. Inherited ratios
+remain read-only. Inline save/cancel/Esc, delete and Ctrl+Z retain their behavior.
+The companion **+ Concentration restriction** action retains the concentration
+and optional member-count editor. Claims controls and stored inheritance links
+are unchanged.
 
 ### Add-only inheritance in Patent Descriptions
 

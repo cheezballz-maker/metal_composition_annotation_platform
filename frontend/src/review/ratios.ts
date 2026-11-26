@@ -6,7 +6,7 @@ export type RatioInterval = { lower:number; upper:number; lowerEndpoint?:string|
 
 export function prepareRatio(row:ReviewConstraint):ReviewConstraint {
   const refs=row.member_refs || [];
-  if(refs.length<2 || new Set(refs).size!==refs.length) throw new Error("Select at least two different constituents.");
+  if(refs.length<2 || new Set(refs).size!==refs.length) throw new Error("A ratio needs at least two different constituents.");
   const result:ReviewConstraint={constraint_id:row.constraint_id,mode:"ratio",member_refs:[...refs]};
   if(row.ratio_values !== undefined) {
     if(row.ratio_values.length!==refs.length) throw new Error("Enter one ratio value or range for each selected constituent.");
@@ -21,11 +21,15 @@ export function prepareRatio(row:ReviewConstraint):ReviewConstraint {
   return result;
 }
 
-export function toggleRatioMember(row:ReviewConstraint,name:string,selected:boolean):ReviewConstraint {
-  const refs=row.member_refs || [],index=refs.indexOf(name);
-  if(selected && index<0)return {...row,member_refs:[...refs,name],...(row.ratio_values!==undefined?{ratio_values:[...row.ratio_values,""]}:{})};
-  if(!selected && index>=0)return {...row,member_refs:refs.filter((_,i)=>i!==index),...(row.ratio_values!==undefined?{ratio_values:row.ratio_values.filter((_,i)=>i!==index)}:{})};
-  return row;
+/** Retain earlier calculated/ranged/explicit-zero records without silently replacing them. */
+export function isLegacyRatio(row:ReviewConstraint):boolean {
+  return row.mode === "ratio" && (row.ratio_values===undefined || row.ratio_values.some(value=>Array.isArray(value) || Number(value)===0));
+}
+
+/** Zero is the editor's unused marker; members and values remain paired in display order. */
+export function simpleRatioFromValues(row:ReviewConstraint,names:string[],values:Record<string,number|string>):ReviewConstraint {
+  const refs=names.filter(name=>String(values[name]??0).trim()!=="" && Number(values[name]??0)!==0);
+  return {constraint_id:row.constraint_id,mode:"ratio",member_refs:refs,ratio_values:refs.map(name=>values[name])};
 }
 
 function concentrationUnit(unit:unknown):[string,number] {
