@@ -21,9 +21,9 @@ paths += ['deploy/build-hub-backup.sh']
 # Never include arbitrary untracked files or the mutable review workspace.
 paths += [
     'backend/claim_source.py', 'backend/composition_schema.py', 'backend/description_schema.py',
-    'backend/composition_export.py', 'backend/review_store.py',
+    'backend/description_ratio.py', 'backend/composition_export.py', 'backend/review_store.py',
     'backend/review_workflow.py', 'backend/review_api.py',
-    'frontend/src/review/ReviewWorkspace.tsx',
+    'frontend/src/review/ReviewWorkspace.tsx', 'frontend/src/review/DescriptionBanner.tsx',
     'frontend/src/review/DescriptionReviewControls.tsx', 'frontend/src/review/descriptionReview.ts',
     'frontend/tests/reviewDescriptionReview.test.ts',
     'frontend/src/review/DescriptionFields.tsx', 'frontend/src/review/descriptionDraft.ts',
@@ -31,12 +31,12 @@ paths += [
     'frontend/src/review/DescriptionNavigator.tsx', 'frontend/src/review/descriptionNavigation.ts',
     'frontend/tests/reviewDescriptionNavigation.test.ts', 'frontend/tests/reviewDescriptionEvidence.test.ts',
     'frontend/src/review/descriptionEvidence.ts', 'frontend/src/review/DescriptionEvidencePanel.tsx',
-    'frontend/src/review/ReviewContextMenu.tsx',
+    'frontend/src/review/ReviewContextMenu.tsx', 'frontend/src/review/DescriptionEditableItem.tsx',
     'frontend/src/review/locale.tsx',
     'frontend/src/review/RawSourceViewer.tsx',
     'frontend/src/review/rawSource.ts', 'frontend/src/review/numericDraft.ts',
     'frontend/src/review/amountDraft.ts',
-    'frontend/src/review/constraintDraft.ts',
+    'frontend/src/review/constraintDraft.ts', 'frontend/src/review/ratios.ts', 'frontend/src/review/DescriptionRatio.tsx',
     'frontend/src/review/types.ts', 'COMPOSITION_REVIEW.md',
 ]
 paths = [p for p in paths if (root / p).is_file()]

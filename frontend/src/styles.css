@@ -25,6 +25,40 @@ button:disabled { opacity: .5; cursor: not-allowed; }
 .review-queue-header, .review-record-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 20px; border: 1px solid #d7dee8; border-radius: 16px; background: #fff; box-shadow: 0 10px 30px rgba(15,23,42,.06); }
 .review-queue-header h1 { margin: 8px 0 2px; font-family: "Iowan Old Style", Georgia, serif; font-size: 28px; }
 .review-queue-header p, .review-queue-header small, .review-record-header span { margin: 0; color: #64748b; font-size: 13px; }
+.review-description-banner { position:relative; overflow:hidden; min-height:112px; border-color:#c6dedf; background:linear-gradient(125deg,#f7fffb,#fbfdff 48%,#eff8fb); }
+.review-description-banner .description-banner-copy { position:relative; z-index:1; padding-left:76px; }
+.review-description-banner .review-export-controls { position:relative; z-index:1; }
+.description-banner-atmosphere { position:absolute; inset:0; pointer-events:none; overflow:hidden; opacity:.7; }
+.description-banner-atmosphere .molecule-waveband { position:absolute; left:-5%; width:max(1800px,120%); overflow:visible; }
+.description-banner-atmosphere .band-back { top:-12px; height:68px; animation:description-wave-back 45s linear infinite; }
+.description-banner-atmosphere .band-mid { top:25px; height:68px; animation:description-wave-mid 38s linear infinite; }
+.description-banner-atmosphere .band-front { top:62px; height:56px; animation:description-wave-front 32s linear infinite; }
+.description-banner-atmosphere .waveband-link, .description-banner-atmosphere .waveband-glow { fill:none; stroke-linecap:round; stroke-linejoin:round; }
+.description-banner-atmosphere .waveband-link { stroke:rgba(75,140,146,.24); stroke-width:2.1; }
+.description-banner-atmosphere .waveband-link.soft { stroke:rgba(116,142,176,.18); stroke-width:1.6; stroke-dasharray:6 12; }
+.description-banner-atmosphere .waveband-link.midline { stroke:rgba(63,157,151,.25); }
+.description-banner-atmosphere .waveband-link.crisp { stroke:rgba(58,139,167,.3); }
+.description-banner-atmosphere .waveband-glow { stroke:rgba(255,255,255,.12); stroke-width:14; }
+.description-banner-atmosphere .waveband-sphere { stroke:rgba(255,255,255,.84); stroke-width:1.1; transform-box:fill-box; transform-origin:center; animation:description-sphere-pulse 14s ease-in-out infinite; }
+.description-banner-atmosphere .sphere-sage { fill:url(#description-sphere-sage-back); }
+.description-banner-atmosphere .sphere-blue { fill:url(#description-sphere-blue-back); }
+.description-banner-atmosphere .sphere-lilac { fill:url(#description-sphere-lilac-back); }
+.description-banner-atmosphere .sphere-peach { fill:url(#description-sphere-peach-mid); }
+.description-banner-atmosphere .sphere-rose { fill:url(#description-sphere-rose-mid); }
+.description-banner-atmosphere .sphere-gold { fill:url(#description-sphere-gold-front); }
+.description-banner-atmosphere .sphere-mist { fill:url(#description-sphere-mist-front); }
+.description-banner-atmosphere .molecule-haze { position:absolute; width:300px; height:80px; border-radius:50%; filter:blur(24px); opacity:.25; }
+.description-banner-atmosphere .haze-a { left:16%; background:#bcebdc; }
+.description-banner-atmosphere .haze-b { right:18%; top:40px; background:#cbdcf8; }
+.description-banner-mark { position:absolute; left:18px; top:50%; width:64px; height:64px; transform:translateY(-50%); pointer-events:none; }
+.description-brand-assembly { transform-origin:center; animation:description-brand-pulse 12s ease-in-out infinite; }
+@keyframes description-wave-back { from { transform:translateX(-210px); } to { transform:translateX(0); } }
+@keyframes description-wave-mid { from { transform:translateX(-280px); } to { transform:translateX(0); } }
+@keyframes description-wave-front { from { transform:translateX(-320px); } to { transform:translateX(0); } }
+@keyframes description-sphere-pulse { 0%,100% { transform:scale(1); opacity:.8; } 50% { transform:scale(1.04); opacity:1; } }
+@keyframes description-brand-pulse { 0%,100% { transform:scale(1); } 50% { transform:scale(1.03) rotate(1deg); } }
+@media (prefers-reduced-motion:reduce) { .description-banner-atmosphere *, .description-brand-assembly { animation:none !important; } }
+@media (max-width:640px) { .review-description-banner { flex-wrap:wrap; gap:12px; } .review-description-banner .review-export-controls { margin-left:76px; } .description-banner-mark { top:54px; } }
 .review-export-controls, .review-editor-controls { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 7px; }
 .review-filter { display: flex; flex-wrap: wrap; gap: 6px; margin: 18px 0; }
 .review-filter button.active { border-color: #0f766e; background: #e6fffb; color: #115e59; }
