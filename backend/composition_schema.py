@@ -5,6 +5,7 @@ import math
 from typing import Any, Iterator
 from .description_ratio import validate_ratio
 from .description_schema import inherited_references, validate_description_extensions
+from .description_amount import normalize_description_composition, validate_description_amount
 
 
 SPAN_FIELDS = frozenset({"start", "end", "evidence_text"})
@@ -165,6 +166,8 @@ def validate_composition(
     require_constraint_evidence: bool = True,
 ) -> dict[str, Any]:
     composition = deepcopy(_require_dict(comp, "composition"))
+    if not require_constraint_evidence:
+        composition = normalize_description_composition(composition)
     if (
         isinstance(composition.get("node_no"), bool)
         or not isinstance(composition.get("node_no"), int)
@@ -185,6 +188,8 @@ def validate_composition(
     constituents = _require_list(composition.get("constituents"), "composition.constituents")
     for index, constituent in enumerate(constituents):
         _validate_constituent(constituent, f"composition.constituents[{index}].", allow_unknown=not require_constraint_evidence)
+        if not require_constraint_evidence and "amounts" not in constituent:
+            validate_description_amount(constituent, "constituent")
     constituent_names = [constituent["constituent_name"] for constituent in constituents]
     if len(set(constituent_names)) != len(constituent_names):
         raise ValueError("composition constituent names must be unique")

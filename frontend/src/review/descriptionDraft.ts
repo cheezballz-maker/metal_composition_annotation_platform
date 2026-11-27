@@ -1,5 +1,5 @@
 import type { InheritanceRelation, RawEvidence, ReviewAmount, ReviewComposition, ReviewCompositionData, ReviewConstituent } from "./types";
-import { normalizeAmountDraft } from "./amountDraft";
+import { normalizeDescriptionAmount, amountMode, singleValue } from "./amountDraft";
 
 const amountFields = ["amount_comparator", "amount_unit", "amount_value", "amount_lower_value", "amount_upper_value", "amount_lower_endpoint_type", "amount_upper_endpoint_type"] as const;
 
@@ -55,17 +55,23 @@ export function movePreferredRange(amounts: ReviewAmount[], from: number, to: nu
 /** Prepare only the constituent being saved; empty preferred rows fail before a request. */
 export function prepareDescriptionConstituent(row: ReviewConstituent, evidence: RawEvidence[]): ReviewConstituent {
   const next = JSON.parse(JSON.stringify(row)) as ReviewConstituent;
-  if (!next.amounts) { normalizeAmountDraft(next, next.constituent_name || "Constituent"); return next; }
+  if (!next.amounts) {
+    normalizeDescriptionAmount(next, next.constituent_name || "Constituent");
+    if (amountMode(next) === "single" && singleValue(next) === 0) next.constituent_status = "included";
+    return next;
+  }
   const amounts = descriptionAmounts(next, evidence).map(amount => {
     const label = `${preferredRangeLabel(amount)} for ${next.constituent_name || "constituent"}`;
-    normalizeAmountDraft(amount, label);
+    normalizeDescriptionAmount(amount, label);
     const hasValue = [amount.amount_value, amount.amount_lower_value, amount.amount_upper_value].some(v => v != null && v !== "");
     if (amount.preferred_order === 0 && amount.amount_comparator !== "balance" && !hasValue) return emptyBaseAmount();
     if (amount.amount_comparator == null || (amount.amount_comparator !== "balance" && !hasValue)) throw new Error(`${label}: enter a value or at least one bound.`);
     if (!amount.evidence_spans.length) throw new Error(`${label}: attach composition evidence before saving.`);
     return amount;
   });
-  return constituentWithAmounts(next, amounts);
+  const result = constituentWithAmounts(next, amounts);
+  if (amounts.some(amount => amountMode(amount) === "single" && singleValue(amount) === 0)) result.constituent_status = "included";
+  return result;
 }
 
 /** Reference choices only: inherited quantities are never copied into the saved child. */

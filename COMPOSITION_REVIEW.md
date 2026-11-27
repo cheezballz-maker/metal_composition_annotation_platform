@@ -1,5 +1,14 @@
 # Composition review workspace
 
+Patent Descriptions store Single values as `amount_comparator: "equal"` or
+`"approximate"` with numeric `amount_value` and `amount_unit`, without interval
+bounds/endpoints. The same shape applies to preferred amounts and concentration
+restrictions. Historical equal-bound Singles remain readable. Explicitly reported
+zero-valued constituents retain zero and use `included`; blanks and one-sided or
+two-sided intervals beginning at zero are not zero-valued Singles. Claims keep
+their existing representation. Description migration preserves composition IDs,
+evidence, inheritance links, decisions, reviewer assignments and workflow history.
+
 Composition review is the application's only workflow. It stores raw-source Unicode-code-point evidence, individual review decisions, and attributed action history. Set `ANNOTATION_REVIEW_WORKSPACE` to an imported review workspace and configure authenticated accounts.
 
 ## Review workspaces

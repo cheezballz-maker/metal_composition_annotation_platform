@@ -22,7 +22,7 @@ import { InheritanceSelector, InheritedInformation } from "./DescriptionInherita
 import { inheritedInformation, inheritanceBase, instanceNumber, prepareAddOnlyInheritance, setInheritanceBase } from "./descriptionInheritance";
 import { descriptionReviewState, descriptionReviewLabel, descriptionSaveFailure, descriptionReviewLocked } from "./descriptionReview";
 import { normalizeCountDraft, normalizeFiniteDraft } from "./numericDraft";
-import { amountMode, amountModePatch, normalizeAmountDraft, singleValue, singleValuePatch, singleValueQualifier, singleValueQualifierPatch, type AmountMode, type EditableAmount, type SingleValueQualifier } from "./amountDraft";
+import { amountMode, amountModePatch, normalizeAmountDraft, normalizeDescriptionAmount, singleValue, singleValuePatch, singleValueQualifier, singleValueQualifierPatch, type AmountMode, type EditableAmount, type SingleValueQualifier } from "./amountDraft";
 import type { RawEvidence, ReviewAction, ReviewComposition, ReviewCompositionData, ReviewConstraint, ReviewDocument, ReviewQueuePayload, ReviewRecordSummary, ReviewRole, ReviewWorkspaceInfo } from "./types";
 
 class ReviewApiError extends Error { constructor(message: string, readonly status: number) { super(message); } }
@@ -62,7 +62,7 @@ function normalizeCompositionNumericDraft(data: ReviewCompositionData, scope?: D
   (next.constraints || []).forEach((item, index) => {
     if (scope && (scope.kind !== "restriction" || (scope.index != null && scope.index !== index))) return;
     if (description && item.mode === "ratio") {next.constraints![index]=prepareRatio(item);return;}
-    normalizeAmountDraft(item, `Constraint ${index + 1}`);
+    (description ? normalizeDescriptionAmount : normalizeAmountDraft)(item, `Constraint ${index + 1}`);
     const selection = item.selection || {};
     const min = normalizeCountDraft(selection.min, `Constraint ${index + 1} minimum`);
     const max = normalizeCountDraft(selection.max, `Constraint ${index + 1} maximum`);

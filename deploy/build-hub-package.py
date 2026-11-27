@@ -21,7 +21,7 @@ paths += ['deploy/build-hub-backup.sh']
 # Never include arbitrary untracked files or the mutable review workspace.
 paths += [
     'backend/claim_source.py', 'backend/composition_schema.py', 'backend/description_schema.py',
-    'backend/description_ratio.py', 'backend/composition_export.py', 'backend/review_store.py',
+    'backend/description_ratio.py', 'backend/description_amount.py', 'backend/composition_export.py', 'backend/review_store.py',
     'backend/review_workflow.py', 'backend/review_api.py',
     'frontend/src/review/ReviewWorkspace.tsx', 'frontend/src/review/DescriptionBanner.tsx',
     'frontend/src/review/DescriptionReviewControls.tsx', 'frontend/src/review/descriptionReview.ts',

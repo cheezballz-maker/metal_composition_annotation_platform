@@ -1,4 +1,4 @@
-import { amountMode, amountModePatch, normalizeAmountDraft, singleValue, singleValuePatch, singleValueQualifier, singleValueQualifierPatch, type EditableAmount } from "../src/review/amountDraft";
+import { amountMode, amountModePatch, normalizeAmountDraft, normalizeDescriptionAmount, singleValue, singleValuePatch, singleValueQualifier, singleValueQualifierPatch, type EditableAmount } from "../src/review/amountDraft";
 
 function expect(condition: unknown, message: string): asserts condition { if (!condition) throw new Error(message); }
 
@@ -44,3 +44,15 @@ const balance = amountModePatch(exactSingle, "balance");
 expect(balance.amount_comparator === "balance" && balance.amount_lower_value === null && balance.amount_upper_value === null, "balance clears bounded values");
 
 console.log("review amount draft tests passed");
+
+for (const [endpoint, comparator] of [["closed", "equal"], ["approx", "approximate"]] as const) {
+  const row: EditableAmount = {...exactSingle,amount_lower_value:0,amount_upper_value:0,amount_lower_endpoint_type:endpoint,amount_upper_endpoint_type:endpoint};
+  normalizeDescriptionAmount(row,"Mn");
+  expect(row.amount_comparator===comparator && row.amount_value===0,"description Single retains zero and its qualifier");
+  expect(!("amount_lower_value" in row) && !("amount_upper_endpoint_type" in row),"description Single omits interval fields");
+  expect(amountMode(row)==="single" && singleValue(row)===0,"canonical Single reloads in Single editor");
+  const edited={...row,...singleValuePatch(row,"2.5")};normalizeDescriptionAmount(edited,"Mn");
+  expect(edited.amount_value===2.5 && edited.amount_comparator===comparator,"canonical Single remains scalar after an edit");
+  const range={...row,...amountModePatch(row,"range")};normalizeDescriptionAmount(range,"Mn");
+  expect(range.amount_comparator==="range" && range.amount_lower_value===0 && range.amount_upper_value===null && !("amount_value"in range),"switching Single to range retains its lower zero");
+}

@@ -3,6 +3,7 @@ import math
 from .description_ratio import calculate_ratio, effective_constituents
 from copy import deepcopy
 from decimal import Decimal
+from .description_amount import normalize_description_composition, validate_description_amount
 
 AMOUNT_FIELDS = (
     "amount_comparator", "amount_unit", "amount_value", "amount_lower_value",
@@ -45,7 +46,7 @@ def clean_description_composition(comp: dict) -> dict:
     result = lean_inheritance(comp)
     for rule in result.get("constraints", []):
         rule.pop("evidence", None)
-    return result
+    return normalize_description_composition(result)
 
 
 def migrate_description_document(document: dict) -> dict:
@@ -158,6 +159,12 @@ def validate_description_extensions(compositions: list[dict], content: str, amou
     parents: dict[int, set[int]] = {}
     for comp in compositions:
         names = {c["constituent_name"] for c in comp["constituents"]}
+        for row in comp["constituents"]:
+            if "amounts" not in row:
+                validate_description_amount(row, "constituent")
+        for rule in comp["constraints"]:
+            if rule.get("mode") != "ratio":
+                validate_description_amount(rule, "restriction")
         for constituent in comp["constituents"]:
             if "amounts" not in constituent:
                 continue
@@ -183,6 +190,7 @@ def validate_description_extensions(compositions: list[dict], content: str, amou
                 elif amount["role"] != "alternative":
                     legacy = True
                 amount_validator(amount, "constituent.amounts.")
+                validate_description_amount(amount, "constituent.amounts")
                 empty_base = amount.get("preferred_order") == 0 and all(amount.get(field) is None for field in AMOUNT_FIELDS)
                 if empty_base:
                     if amount.get("evidence_spans") != []:

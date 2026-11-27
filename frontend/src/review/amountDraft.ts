@@ -5,7 +5,7 @@ export type SingleValueQualifier = "exact" | "approximate";
 
 export interface EditableAmount {
   amount_comparator?: string | null;
-  /** Legacy scalar storage. New edits are written as schema-compatible bounds. */
+  /** Scalar Single storage for Descriptions; Claims retain equal-bound edits. */
   amount_value?: string | number | null;
   amount_lower_value?: string | number | null;
   amount_upper_value?: string | number | null;
@@ -131,4 +131,19 @@ export function normalizeAmountDraft(item: EditableAmount, label: string): void 
     item.amount_lower_endpoint_type = null;
     item.amount_upper_endpoint_type = null;
   }
+}
+
+/** Description-only Single serialization; shared Claims normalization stays unchanged. */
+export function normalizeDescriptionAmount(item: EditableAmount, label: string): void {
+  normalizeAmountDraft(item, label);
+  if (amountMode(item) === "single") {
+    const qualifier = singleValueQualifier(item);
+    const value = singleValue(item);
+    item.amount_comparator = qualifier === "approximate" ? "approximate" : "equal";
+    item.amount_value = value;
+    delete item.amount_lower_value;
+    delete item.amount_upper_value;
+    delete item.amount_lower_endpoint_type;
+    delete item.amount_upper_endpoint_type;
+  } else delete item.amount_value;
 }
